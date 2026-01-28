@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createCategory, deleteCategory } from "@/lib/actions/categories";
 import {
@@ -8,7 +9,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { IconTags, IconPlus, IconTrash, IconCoin } from "@tabler/icons-react"; // Ditambahkan IconCoin
+import { IconTags, IconPlus, IconTrash, IconCoin } from "@tabler/icons-react";
 import {
   Dialog,
   DialogContent,
@@ -25,8 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default async function CategoriesPage() {
+// 1. Komponen yang khusus mengambil data
+async function CategoriesContent() {
   const supabase = await createClient();
   const { data: categories } = await supabase
     .from("categories")
@@ -36,7 +39,113 @@ export default async function CategoriesPage() {
   const expenses = categories?.filter((c) => c.type === "expense") || [];
   const incomes = categories?.filter((c) => c.type === "income") || [];
 
-  // Wrapper untuk mengatasi Error TypeScript pada Form Action
+  return (
+    <div className="grid gap-6 px-4 lg:px-0 md:grid-cols-2">
+      {/* KATEGORI PENGELUARAN */}
+      <Card className="border-none shadow-sm bg-card/50">
+        <CardHeader>
+          <CardTitle className="text-red-500 flex items-center gap-2 text-lg">
+            <IconTags size={20} /> Pengeluaran
+          </CardTitle>
+          <CardDescription>Uang yang keluar dari dompet Anda.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          {expenses.map((cat) => (
+            <div
+              key={cat.id}
+              className="flex items-center justify-between p-3 border rounded-xl hover:bg-muted/50 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-3 h-3 rounded-full shadow-sm"
+                  style={{ backgroundColor: cat.color }}
+                />
+                <span className="font-medium">{cat.name}</span>
+              </div>
+              <form
+                action={async () => {
+                  "use server";
+                  await deleteCategory(cat.id);
+                }}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity h-8 w-8"
+                >
+                  <IconTrash size={16} />
+                </Button>
+              </form>
+            </div>
+          ))}
+          {expenses.length === 0 && (
+            <p className="text-center text-sm text-muted-foreground py-10">
+              Belum ada kategori pengeluaran.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* KATEGORI PEMASUKAN */}
+      <Card className="border-none shadow-sm bg-card/50">
+        <CardHeader>
+          <CardTitle className="text-green-600 flex items-center gap-2 text-lg">
+            <IconCoin size={20} /> Pemasukan
+          </CardTitle>
+          <CardDescription>Uang yang masuk ke saldo Anda.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-2">
+          {incomes.map((cat) => (
+            <div
+              key={cat.id}
+              className="flex items-center justify-between p-3 border rounded-xl hover:bg-muted/50 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-3 h-3 rounded-full shadow-sm"
+                  style={{ backgroundColor: cat.color }}
+                />
+                <span className="font-medium">{cat.name}</span>
+              </div>
+              <form
+                action={async () => {
+                  "use server";
+                  await deleteCategory(cat.id);
+                }}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity h-8 w-8"
+                >
+                  <IconTrash size={16} />
+                </Button>
+              </form>
+            </div>
+          ))}
+          {incomes.length === 0 && (
+            <p className="text-center text-sm text-muted-foreground py-10">
+              Belum ada kategori pemasukan.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// 2. Tampilan saat loading (Skeleton)
+function CategorySkeleton() {
+  return (
+    <div className="grid gap-6 px-4 lg:px-0 md:grid-cols-2">
+      <Skeleton className="h-[300px] w-full rounded-xl" />
+      <Skeleton className="h-[300px] w-full rounded-xl" />
+    </div>
+  );
+}
+
+// 3. Halaman Utama (Sinkron)
+export default function CategoriesPage() {
   async function handleCreateCategory(formData: FormData) {
     "use server";
     await createCategory(formData);
@@ -46,9 +155,9 @@ export default async function CategoriesPage() {
     <div className="flex flex-1 flex-col gap-4 py-4 md:gap-8 md:py-8">
       <div className="flex items-center justify-between px-4 lg:px-0">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Kategori</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Kategori</h2>
           <p className="text-muted-foreground text-sm">
-            Pisahkan transaksi berdasarkan jenisnya.
+            Kelola label untuk setiap transaksi Anda.
           </p>
         </div>
 
@@ -62,7 +171,6 @@ export default async function CategoriesPage() {
             <DialogHeader>
               <DialogTitle>Buat Kategori Baru</DialogTitle>
             </DialogHeader>
-            {/* Menggunakan handleCreateCategory agar TS tidak komplain soal return value */}
             <form action={handleCreateCategory} className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nama Kategori</Label>
@@ -99,10 +207,9 @@ export default async function CategoriesPage() {
                     defaultValue="#3b82f6"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Preview</Label>
+                <div className="space-y-2 flex flex-col justify-end">
                   <div className="h-10 w-full rounded-md border border-input bg-muted flex items-center justify-center">
-                    <IconTags className="size-5" />
+                    <IconTags className="size-5 opacity-50" />
                   </div>
                 </div>
               </div>
@@ -114,99 +221,9 @@ export default async function CategoriesPage() {
         </Dialog>
       </div>
 
-      <div className="grid gap-6 px-4 lg:px-0 md:grid-cols-2">
-        {/* KATEGORI PENGELUARAN */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-red-500 flex items-center gap-2">
-              <IconTags size={20} /> Pengeluaran
-            </CardTitle>
-            <CardDescription>
-              Uang yang keluar dari dompet Anda.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-2">
-            {expenses.map((cat) => (
-              <div
-                key={cat.id}
-                className="flex items-center justify-between p-2 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: cat.color }}
-                  />
-                  <span className="font-medium">{cat.name}</span>
-                </div>
-                <form
-                  action={async () => {
-                    "use server";
-                    await deleteCategory(cat.id);
-                  }}
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-red-500 h-8 w-8"
-                  >
-                    <IconTrash size={16} />
-                  </Button>
-                </form>
-              </div>
-            ))}
-            {expenses.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-4">
-                Belum ada kategori pengeluaran.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* KATEGORI PEMASUKAN */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-green-600 flex items-center gap-2">
-              <IconCoin size={20} /> Pemasukan
-            </CardTitle>
-            <CardDescription>Uang yang masuk ke saldo Anda.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-2">
-            {incomes.map((cat) => (
-              <div
-                key={cat.id}
-                className="flex items-center justify-between p-2 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: cat.color }}
-                  />
-                  <span className="font-medium">{cat.name}</span>
-                </div>
-                <form
-                  action={async () => {
-                    "use server";
-                    await deleteCategory(cat.id);
-                  }}
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-red-500 h-8 w-8"
-                  >
-                    <IconTrash size={16} />
-                  </Button>
-                </form>
-              </div>
-            ))}
-            {incomes.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-4">
-                Belum ada kategori pemasukan.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Suspense fallback={<CategorySkeleton />}>
+        <CategoriesContent />
+      </Suspense>
     </div>
   );
 }

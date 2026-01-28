@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import {
   createTransaction,
@@ -5,13 +6,7 @@ import {
 } from "@/lib/actions/transactions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  IconPlus,
-  IconReceipt2,
-  IconTrash,
-  IconArrowUpRight,
-  IconArrowDownRight,
-} from "@tabler/icons-react";
+import { IconPlus, IconTrash } from "@tabler/icons-react";
 import {
   Dialog,
   DialogContent,
@@ -37,48 +32,38 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default async function TransactionsPage() {
+// 1. Komponen Pengambil Data
+async function TransactionsContent() {
   const supabase = await createClient();
 
-  // Ambil data pendukung untuk Form
   const { data: wallets } = await supabase.from("wallets").select("*");
   const { data: categories } = await supabase.from("categories").select("*");
-
-  // Ambil data transaksi dengan join
   const { data: transactions } = await supabase
     .from("transactions")
-    .select(
-      `
-      *,
-      wallets(name),
-      categories(name, color)
-    `,
-    )
+    .select(`*, wallets(name), categories(name, color)`)
     .order("date", { ascending: false });
 
-  // WRAPPER UNTUK MENGATASI ERROR TYPESCRIPT
   async function handleCreateTransaction(formData: FormData) {
     "use server";
     await createTransaction(formData);
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 py-4 md:gap-8 md:py-8">
-      <div className="flex items-center justify-between px-4 lg:px-0">
-        <h2 className="text-2xl font-bold tracking-tight">Riwayat Transaksi</h2>
-
+    <>
+      <div className="flex items-center justify-between px-4 lg:px-0 mb-4">
+        <h2 className="text-3xl font-bold tracking-tight">Riwayat</h2>
         <Dialog>
           <DialogTrigger asChild>
             <Button size="sm">
-              <IconPlus className="mr-2 size-4" /> Catat Transaksi
+              <IconPlus className="mr-1 size-4" /> Catat
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Tambah Transaksi</DialogTitle>
             </DialogHeader>
-            {/* GUNAKAN WRAPPER DI SINI */}
             <form action={handleCreateTransaction} className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -94,13 +79,12 @@ export default async function TransactionsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Jumlah (Rp)</Label>
-                  <Input name="amount" type="number" placeholder="0" required />
+                  <Label>Jumlah</Label>
+                  <Input name="amount" type="number" required />
                 </div>
               </div>
-
               <div className="space-y-2">
-                <Label>Dompet / Rekening</Label>
+                <Label>Dompet</Label>
                 <Select name="wallet_id" required>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih Dompet" />
@@ -114,7 +98,6 @@ export default async function TransactionsPage() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label>Kategori</Label>
                 <Select name="category_id">
@@ -130,33 +113,21 @@ export default async function TransactionsPage() {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label>Keterangan</Label>
-                <Input
-                  name="description"
-                  placeholder="Misal: Beli kopi senja"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tanggal</Label>
-                <Input
-                  name="date"
-                  type="date"
-                  defaultValue={new Date().toISOString().split("T")[0]}
-                />
-              </div>
-
+              <Input name="description" placeholder="Keterangan..." />
+              <Input
+                name="date"
+                type="date"
+                defaultValue={new Date().toISOString().split("T")[0]}
+              />
               <Button type="submit" className="w-full">
-                Simpan Transaksi
+                Simpan
               </Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      <Card className="mx-4 lg:mx-0">
+      <Card className="mx-4 lg:mx-0 border-none shadow-sm bg-card/50">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -164,9 +135,8 @@ export default async function TransactionsPage() {
                 <TableHead>Tanggal</TableHead>
                 <TableHead>Keterangan</TableHead>
                 <TableHead>Kategori</TableHead>
-                <TableHead>Dompet</TableHead>
                 <TableHead className="text-right">Jumlah</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -180,7 +150,6 @@ export default async function TransactionsPage() {
                     {tx.categories ? (
                       <Badge
                         variant="outline"
-                        className="font-normal"
                         style={{ borderColor: tx.categories.color }}
                       >
                         {tx.categories.name}
@@ -188,9 +157,6 @@ export default async function TransactionsPage() {
                     ) : (
                       "-"
                     )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {tx.wallets?.name}
                   </TableCell>
                   <TableCell
                     className={`text-right font-bold ${tx.type === "expense" ? "text-red-500" : "text-green-600"}`}
@@ -216,20 +182,23 @@ export default async function TransactionsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {transactions?.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center py-10 text-muted-foreground"
-                  >
-                    Belum ada transaksi tercatat.
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+    </>
+  );
+}
+
+// 2. Halaman Utama
+export default function TransactionsPage() {
+  return (
+    <div className="flex flex-1 flex-col gap-4 py-4 md:gap-8 md:py-8">
+      <Suspense
+        fallback={<Skeleton className="h-[500px] w-full rounded-2xl" />}
+      >
+        <TransactionsContent />
+      </Suspense>
     </div>
   );
 }

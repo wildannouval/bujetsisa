@@ -1,42 +1,36 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { type Icon } from "@tabler/icons-react"
-
+import React from "react";
+import { IconSettings, IconHelp, IconMessageDots } from "@tabler/icons-react";
 import {
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+import Link from "next/link";
 
-export function NavSecondary({
-  items,
-  ...props
-}: {
-  items: {
-    title: string
-    url: string
-    icon: Icon
-  }[]
-} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+const ICONS: Record<string, any> = {
+  settings: IconSettings,
+  help: IconHelp,
+  support: IconMessageDots,
+};
+
+export function NavSecondary({ items }: { items: any[] }) {
   return (
-    <SidebarGroup {...props}>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
-                <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  )
+    <SidebarMenu>
+      {items.map((item) => {
+        const Icon = ICONS[item.iconName] || IconHelp;
+        return (
+          <SidebarMenuItem key={item.title}>
+            <SidebarMenuButton asChild size="sm">
+              <Link href={item.url}>
+                <Icon size={16} />
+                <span>{item.title}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
+  );
 }

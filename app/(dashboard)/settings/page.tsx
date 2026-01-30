@@ -1,45 +1,31 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { updateProfile } from "@/lib/actions/profile";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { deleteAccount } from "@/lib/actions/profile";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Separator } from "@/components/ui/separator";
-import { IconUser, IconPalette, IconLogout } from "@tabler/icons-react";
+import {
+  IconUser,
+  IconPalette,
+  IconLogout,
+  IconShieldLock,
+  IconPhoto,
+  IconSettings,
+  IconBell,
+} from "@tabler/icons-react";
 import { redirect } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AvatarPicker } from "@/components/avatar-picker";
+import { ProfileForm } from "@/components/profile-form";
+import { PasswordForm } from "@/components/password-form";
+import { NotificationForm } from "@/components/notification-form";
 
-// 1. Komponen Loading (Skeleton)
-function SettingsSkeleton() {
-  return (
-    <div className="grid gap-8">
-      <section className="grid gap-6 md:grid-cols-2">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-64 w-full rounded-xl" />
-      </section>
-      <section className="grid gap-6 md:grid-cols-2">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-40 w-full rounded-xl" />
-      </section>
-    </div>
-  );
-}
-
-// 2. Komponen Konten Dinamis (Mengambil data Supabase)
 async function SettingsContent() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) redirect("/auth/login");
 
   const { data: profile } = await supabase
@@ -48,116 +34,107 @@ async function SettingsContent() {
     .eq("id", user.id)
     .single();
 
-  async function handleUpdateProfile(formData: FormData) {
-    "use server";
-    await updateProfile(formData);
-  }
-
-  async function handleSignOut() {
-    "use server";
-    const supabase = await createClient();
-    await supabase.auth.signOut();
-    redirect("/auth/login");
-  }
-
   return (
-    <div className="grid gap-8 px-4 lg:px-0">
-      {/* PENGATURAN PROFIL */}
-      <section className="grid gap-6 md:grid-cols-2">
-        <div>
-          <h3 className="text-lg font-medium flex items-center gap-2">
-            <IconUser size={20} /> Profil Pengguna
+    <div className="space-y-10 px-4 lg:px-0 pb-20">
+      {/* IDENTITAS VISUAL */}
+      <section className="grid gap-6 md:grid-cols-3">
+        <div className="space-y-1">
+          <h3 className="text-lg font-bold flex items-center gap-2 tracking-tight">
+            <IconPhoto size={20} className="text-primary" /> Identitas Visual
           </h3>
           <p className="text-sm text-muted-foreground">
-            Informasi ini digunakan untuk identitas akun Anda di sistem.
+            Ubah karakter DiceBear profil Anda.
           </p>
         </div>
-        <Card className="border-none shadow-sm bg-card/50">
-          <CardContent className="pt-6">
-            <form action={handleUpdateProfile} className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs uppercase opacity-70">Email</Label>
-                <Input value={user.email} disabled className="bg-muted" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="full_name">Nama Lengkap</Label>
-                <Input
-                  id="full_name"
-                  name="full_name"
-                  defaultValue={profile?.full_name || ""}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  name="username"
-                  defaultValue={profile?.username || ""}
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Simpan Perubahan
-              </Button>
-            </form>
+        <Card className="md:col-span-2 border shadow-sm bg-card/50">
+          <CardContent className="py-10 flex justify-center md:justify-start">
+            <AvatarPicker
+              url={profile?.avatar_url}
+              username={profile?.username || "user"}
+            />
           </CardContent>
         </Card>
       </section>
 
-      {/* PENGATURAN TEMA */}
-      <section className="grid gap-6 md:grid-cols-2">
-        <div>
-          <h3 className="text-lg font-medium flex items-center gap-2">
-            <IconPalette size={20} /> Personalisasi
+      <Separator />
+
+      {/* PROFIL & NOTIFIKASI */}
+      <section className="grid gap-6 md:grid-cols-3">
+        <div className="space-y-1">
+          <h3 className="text-lg font-bold flex items-center gap-2 tracking-tight">
+            <IconUser size={20} className="text-primary" /> Profil & Notifikasi
           </h3>
           <p className="text-sm text-muted-foreground">
-            Pilih tema yang paling nyaman untuk penggunaan sehari-hari.
+            Kelola data diri dan preferensi sistem.
           </p>
         </div>
-        <Card className="border-none shadow-sm bg-card/50">
-          <CardContent className="pt-6">
-            <ThemeSwitcher />
+        <Card className="md:col-span-2 border shadow-sm bg-card/50">
+          <CardContent className="pt-6 space-y-6">
+            <ProfileForm user={user} profile={profile} />
+            <Separator className="border-dashed" />
+            <NotificationForm profile={profile} />
           </CardContent>
         </Card>
       </section>
 
-      {/* AKSI AKUN */}
-      <section className="grid gap-6 md:grid-cols-2">
-        <div>
-          <h3 className="text-lg font-medium text-red-500 flex items-center gap-2">
-            Keamanan
+      <Separator />
+
+      {/* KEAMANAN & HAPUS AKUN */}
+      <section className="grid gap-6 md:grid-cols-3">
+        <div className="space-y-1 text-red-500">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <IconShieldLock size={20} /> Bahaya
           </h3>
-          <p className="text-sm text-muted-foreground">
-            Aksi berbahaya terkait akun Anda.
-          </p>
+          <p className="text-sm opacity-80">Pengaturan proteksi data.</p>
         </div>
-        <Card className="border-none shadow-sm bg-red-50/10 dark:bg-red-950/5">
-          <CardContent className="pt-6">
-            <form action={handleSignOut}>
-              <Button variant="destructive" className="w-full">
-                <IconLogout className="mr-2 size-4" /> Keluar dari Bujetsisa
+        <div className="md:col-span-2 space-y-4">
+          <Card className="border shadow-sm bg-card/50">
+            <CardContent className="pt-6">
+              <PasswordForm />
+            </CardContent>
+          </Card>
+          <div className="p-4 border border-red-200 bg-red-50/30 rounded-2xl flex items-center justify-between">
+            <div className="space-y-0.5">
+              <p className="text-sm font-bold text-red-600 uppercase tracking-tighter">
+                Hapus Akun
+              </p>
+              <p className="text-[10px] text-muted-foreground italic">
+                Tindakan ini tidak bisa dibatalkan.
+              </p>
+            </div>
+            <form
+              action={async () => {
+                "use server";
+                await deleteAccount();
+              }}
+            >
+              <Button
+                variant="destructive"
+                size="sm"
+                className="font-bold text-[10px] uppercase"
+              >
+                Hapus Permanen
               </Button>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </section>
     </div>
   );
 }
 
-// 3. Halaman Utama (Statik Shell)
 export default function SettingsPage() {
   return (
-    <div className="flex flex-1 flex-col gap-4 py-4 md:gap-8 md:py-8 max-w-4xl mx-auto w-full">
+    <div className="flex flex-1 flex-col gap-4 py-4 md:gap-8 md:py-8 max-w-5xl mx-auto w-full">
       <div className="px-4 lg:px-0">
-        <h2 className="text-3xl font-bold tracking-tight">Pengaturan</h2>
-        <p className="text-muted-foreground text-sm">
-          Sesuaikan profil dan preferensi aplikasi Anda.
-        </p>
+        <h2 className="text-4xl font-black tracking-tighter uppercase italic flex items-center gap-3">
+          <IconSettings size={32} className="text-primary" /> Pengaturan
+        </h2>
       </div>
-
       <Separator className="my-2" />
-
-      <Suspense fallback={<SettingsSkeleton />}>
+      <Suspense
+        fallback={<Skeleton className="h-[600px] w-full rounded-2xl" />}
+      >
         <SettingsContent />
       </Suspense>
     </div>

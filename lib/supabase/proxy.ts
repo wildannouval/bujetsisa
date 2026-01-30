@@ -8,12 +8,10 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  // Cek apakah Environment Variables sudah terpasang
   if (!hasEnvVars) {
     return supabaseResponse;
   }
 
-  // 1. Inisialisasi Supabase Client di sisi Server (Middleware)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
@@ -37,29 +35,34 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // 2. Refresh Sesi Auth
-  // getUser() lebih aman daripada getSession() atau getClaims() karena melakukan validasi ke server Supabase
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   // 3. LOGIKA REDIRECT (PROTEKSI HALAMAN)
+  const isAuthPage = request.nextUrl.pathname.startsWith("/auth");
+  const isLandingPage = request.nextUrl.pathname === "/";
+  const isDashboardPage =
+    request.nextUrl.pathname.startsWith("/dashboard") ||
+    request.nextUrl.pathname.startsWith("/wallets") ||
+    request.nextUrl.pathname.startsWith("/transactions") ||
+    request.nextUrl.pathname.startsWith("/categories");
 
-  // A. Jika USER BELUM LOGIN dan mencoba mengakses halaman selain login/register/auth
-  if (!user && !request.nextUrl.pathname.startsWith("/auth")) {
+  // A. PROTEKSI: Jika USER BELUM LOGIN dan mencoba mengakses Dashboard atau halaman private lainnya
+  // Kita izinkan Landing Page ("/") dan halaman Auth tetap terbuka
+  if (!user && isDashboardPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
     return NextResponse.redirect(url);
   }
 
-  // B. Jika USER SUDAH LOGIN dan mencoba mengakses halaman auth (login/sign-up)
-  // Kita lempar balik ke Dashboard agar tidak login dua kali
-  if (user && request.nextUrl.pathname.startsWith("/auth")) {
+  // B. AUTH REDIRECT: Jika USER SUDAH LOGIN dan mencoba mengakses halaman auth (login/sign-up)
+  // Kita lempar ke "/dashboard", bukan ke "/" (karena "/" sekarang adalah Landing Page)
+  if (user && isAuthPage) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  // Penting: Selalu kembalikan objek supabaseResponse agar cookie tetap sinkron
   return supabaseResponse;
 }

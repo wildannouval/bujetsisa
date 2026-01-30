@@ -1,203 +1,206 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
-import {
-  createTransaction,
-  deleteTransaction,
-} from "@/lib/actions/transactions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { IconPlus, IconTrash } from "@tabler/icons-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { deleteTransaction } from "@/lib/actions/transactions";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeleteButton } from "@/components/delete-button";
+import { CreateTransactionDialog } from "@/components/create-transaction-dialog";
+import { EditTransactionDialog } from "@/components/edit-transaction-dialog";
+import { TransactionFilters } from "@/components/transaction-filters";
+import {
+  IconReceiptOff,
+  IconHistory,
+  IconDeviceAnalytics,
+  IconReceipt2,
+} from "@tabler/icons-react";
 
-// 1. Komponen Pengambil Data
-async function TransactionsContent() {
+async function TransactionsContent({ searchParams }: { searchParams: any }) {
   const supabase = await createClient();
+  const params = await searchParams;
 
-  const { data: wallets } = await supabase.from("wallets").select("*");
-  const { data: categories } = await supabase.from("categories").select("*");
-  const { data: transactions } = await supabase
+  const { data: wallets } = await supabase
+    .from("wallets")
+    .select("*")
+    .order("name");
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("*")
+    .order("name");
+
+  let query = supabase
     .from("transactions")
     .select(`*, wallets(name), categories(name, color)`)
-    .order("date", { ascending: false });
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
 
-  async function handleCreateTransaction(formData: FormData) {
-    "use server";
-    await createTransaction(formData);
-  }
+  if (params.search) query = query.ilike("description", `%${params.search}%`);
+  if (params.wallet && params.wallet !== "all")
+    query = query.eq("wallet_id", params.wallet);
+  if (params.category && params.category !== "all")
+    query = query.eq("category_id", params.category);
+
+  const { data: transactions } = await query;
 
   return (
-    <>
-      <div className="flex items-center justify-between px-4 lg:px-0 mb-4">
-        <h2 className="text-3xl font-bold tracking-tight">Riwayat</h2>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <IconPlus className="mr-1 size-4" /> Catat
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Tambah Transaksi</DialogTitle>
-            </DialogHeader>
-            <form action={handleCreateTransaction} className="space-y-4 pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tipe</Label>
-                  <Select name="type" defaultValue="expense">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="expense">Pengeluaran</SelectItem>
-                      <SelectItem value="income">Pemasukan</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Jumlah</Label>
-                  <Input name="amount" type="number" required />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Dompet</Label>
-                <Select name="wallet_id" required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Dompet" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {wallets?.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {w.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Kategori</Label>
-                <Select name="category_id">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Kategori" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories?.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Input name="description" placeholder="Keterangan..." />
-              <Input
-                name="date"
-                type="date"
-                defaultValue={new Date().toISOString().split("T")[0]}
-              />
-              <Button type="submit" className="w-full">
-                Simpan
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 lg:px-0">
+        <div className="space-y-1 text-left">
+          <Badge className="bg-indigo-600/10 text-indigo-500 border-none font-black text-[9px] uppercase tracking-[0.2em] px-3 py-0.5">
+            Financial Records
+          </Badge>
+          <h2 className="text-3xl font-black tracking-tighter uppercase flex items-center gap-3 text-foreground">
+            <IconHistory className="text-indigo-600 size-8" /> Ledger
+          </h2>
+          <p className="text-sm text-muted-foreground font-medium italic-none">
+            Monitor and audit every capital movement in your system.
+          </p>
+        </div>
+        <CreateTransactionDialog
+          wallets={wallets || []}
+          categories={categories || []}
+        />
       </div>
 
-      <Card className="mx-4 lg:mx-0 border-none shadow-sm bg-card/50">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tanggal</TableHead>
-                <TableHead>Keterangan</TableHead>
-                <TableHead>Kategori</TableHead>
-                <TableHead className="text-right">Jumlah</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions?.map((tx: any) => (
-                <TableRow key={tx.id}>
-                  <TableCell className="text-xs">{tx.date}</TableCell>
-                  <TableCell className="font-medium">
-                    {tx.description || "-"}
-                  </TableCell>
-                  <TableCell>
-                    {tx.categories ? (
-                      <Badge
-                        variant="outline"
-                        style={{ borderColor: tx.categories.color }}
-                      >
-                        {tx.categories.name}
-                      </Badge>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell
-                    className={`text-right font-bold ${tx.type === "expense" ? "text-red-500" : "text-green-600"}`}
-                  >
-                    {tx.type === "expense" ? "-" : "+"}{" "}
-                    {Number(tx.amount).toLocaleString("id-ID")}
-                  </TableCell>
-                  <TableCell>
-                    <form
-                      action={async () => {
-                        "use server";
-                        await deleteTransaction(tx.id);
-                      }}
+      {/* CONTROL PANEL (FILTERS) */}
+      <div className="px-4 lg:px-0">
+        <TransactionFilters
+          wallets={wallets || []}
+          categories={categories || []}
+        />
+      </div>
+
+      {/* LEDGER TABLE/LIST */}
+      <div className="px-4 lg:px-0">
+        <div className="rounded-[2rem] border border-border bg-card/40 backdrop-blur-xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left">
+              <thead className="bg-muted/30 border-b border-border">
+                <tr>
+                  <th className="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Timestamp
+                  </th>
+                  <th className="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Entity & Source
+                  </th>
+                  <th className="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Classification
+                  </th>
+                  <th className="p-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">
+                    Value (IDR)
+                  </th>
+                  <th className="p-5 w-[100px]"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {transactions?.map((tx: any) => {
+                  const cat = tx.categories;
+                  return (
+                    <tr
+                      key={tx.id}
+                      className="group hover:bg-muted/30 transition-colors"
                     >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-red-500"
-                      >
-                        <IconTrash size={16} />
-                      </Button>
-                    </form>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </>
+                      <td className="p-5">
+                        <p className="text-[11px] font-black uppercase tracking-tighter text-muted-foreground tabular-nums">
+                          {new Date(tx.date).toLocaleDateString("id-ID", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
+                      </td>
+                      <td className="p-5">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-black uppercase tracking-tight text-foreground truncate max-w-[200px]">
+                            {tx.description || "System Registry"}
+                          </p>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-indigo-500 opacity-70 flex items-center gap-1">
+                            <IconReceipt2 size={10} />{" "}
+                            {tx.wallets?.name || "No Source"}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="p-5">
+                        {cat ? (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] font-black uppercase tracking-widest border-none px-2"
+                            style={{
+                              backgroundColor: `${cat.color}15`,
+                              color: cat.color,
+                            }}
+                          >
+                            {cat.name}
+                          </Badge>
+                        ) : (
+                          <span className="text-[9px] font-black uppercase opacity-20 tracking-widest italic-none">
+                            Unclassified
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-5 text-right">
+                        <p
+                          className={`text-base font-black tabular-nums ${tx.type === "expense" ? "text-red-500" : "text-green-500"}`}
+                        >
+                          {tx.type === "expense" ? "-" : "+"}{" "}
+                          {Number(tx.amount).toLocaleString("id-ID")}
+                        </p>
+                      </td>
+                      <td className="p-5">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <EditTransactionDialog
+                            transaction={tx}
+                            wallets={wallets || []}
+                            categories={categories || []}
+                          />
+                          <DeleteButton
+                            action={deleteTransaction}
+                            id={tx.id}
+                            label="Transaction"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {transactions?.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-32 space-y-4 opacity-20">
+              <IconReceiptOff size={64} strokeWidth={1} />
+              <div className="text-center space-y-1">
+                <p className="text-sm font-black uppercase tracking-[0.4em]">
+                  Zero Registry Found
+                </p>
+                <p className="text-[10px] font-bold uppercase tracking-widest">
+                  No matching transactions in this sector
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
-// 2. Halaman Utama
-export default function TransactionsPage() {
+export default function TransactionsPage({
+  searchParams,
+}: {
+  searchParams: any;
+}) {
   return (
-    <div className="flex flex-1 flex-col gap-4 py-4 md:gap-8 md:py-8">
+    <div className="relative min-h-screen w-full flex flex-col gap-6 py-6 md:py-8 w-full max-w-none">
+      <div className="fixed top-0 left-[-10%] size-[600px] bg-indigo-600/[0.03] rounded-full blur-[140px] pointer-events-none -z-10" />
+      <div className="fixed bottom-0 right-[-10%] size-[600px] bg-blue-600/[0.03] rounded-full blur-[140px] pointer-events-none -z-10" />
       <Suspense
-        fallback={<Skeleton className="h-[500px] w-full rounded-2xl" />}
+        fallback={
+          <Skeleton className="h-[600px] w-full rounded-[2.5rem] opacity-20" />
+        }
       >
-        <TransactionsContent />
+        <TransactionsContent searchParams={searchParams} />
       </Suspense>
     </div>
   );

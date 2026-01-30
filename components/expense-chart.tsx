@@ -1,59 +1,63 @@
 "use client";
 
-import { Pie, PieChart, Cell, ResponsiveContainer } from "recharts";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
 
-export function ExpenseChart({ data }: { data: any[] }) {
-  const chartConfig = data.reduce((acc, curr, index) => {
-    acc[curr.name] = {
-      label: curr.name,
-      color: curr.color || `hsl(var(--chart-${(index % 5) + 1}))`,
-    };
-    return acc;
-  }, {} as ChartConfig);
+interface ExpenseChartProps {
+  data: {
+    name: string;
+    value: number;
+    color: string;
+  }[];
+}
 
+export function ExpenseChart({ data }: ExpenseChartProps) {
   return (
-    <Card className="flex flex-col border-none shadow-none">
-      <CardHeader className="items-center pb-0">
-        <CardTitle>Proporsi Pengeluaran</CardTitle>
-        <CardDescription>Berdasarkan Kategori Bulan Ini</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 pb-0">
-        <ChartContainer
-          config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
-        >
-          <PieChart>
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              innerRadius={60}
-              strokeWidth={5}
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+    <div className="h-[300px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={60}
+            outerRadius={80}
+            paddingAngle={5}
+            dataKey="value"
+            stroke="none"
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "hsl(var(--card))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: "8px",
+              fontSize: "12px",
+            }}
+            itemStyle={{ fontWeight: "bold" }}
+            formatter={(value: number) => `Rp ${value.toLocaleString("id-ID")}`}
+          />
+          <Legend
+            verticalAlign="bottom"
+            height={36}
+            iconType="circle"
+            formatter={(value) => (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                {value}
+              </span>
+            )}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

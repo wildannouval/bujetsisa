@@ -20,11 +20,18 @@ import {
 import { useTranslation } from "@/hooks/use-translation";
 import { Budget, Category } from "@/lib/types";
 import { createBudget, updateBudget } from "@/lib/actions/budgets";
-import { useState } from "react";
+import { getWallets } from "@/lib/actions/wallets";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Link2 } from "lucide-react";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { useRouter } from "next/navigation";
+
+interface Wallet {
+  id: string;
+  name: string;
+  icon: string;
+}
 
 interface BudgetDialogProps {
   budget?: Budget;
@@ -43,16 +50,35 @@ export function BudgetDialog({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [internalOpen, setInternalOpen] = useState(false);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [selectedWalletId, setSelectedWalletId] = useState<string>(
+    (budget as any)?.wallet_id || "",
+  );
 
   const isEdit = !!budget;
   const isOpen = open !== undefined ? open : internalOpen;
   const setIsOpen = onOpenChange || setInternalOpen;
+
+  // Load wallets when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      loadWallets();
+    }
+  }, [isOpen]);
+
+  const loadWallets = async () => {
+    const walletsData = await getWallets();
+    setWallets(walletsData as Wallet[]);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    if (selectedWalletId) {
+      formData.set("wallet_id", selectedWalletId);
+    }
 
     try {
       let result;
@@ -80,6 +106,7 @@ export function BudgetDialog({
 
   // Filter only expense categories for budgeting
   const expenseCategories = categories.filter((c) => c.type === "expense");
+  const selectedWallet = wallets.find((w) => w.id === selectedWalletId);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -149,6 +176,44 @@ export function BudgetDialog({
                   </SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Wallet Link Section */}
+            <div className="grid gap-2 p-3 bg-muted/50 rounded-lg border">
+              <Label className="flex items-center gap-2">
+                <Link2 className="h-4 w-4" />
+                {t.budgeting.link_wallet || "Hubungkan ke Dompet"}
+              </Label>
+              <Select
+                value={selectedWalletId || "none"}
+                onValueChange={(val) =>
+                  setSelectedWalletId(val === "none" ? "" : val)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      t.budgeting.select_wallet || "Pilih dompet (opsional)"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">
+                    {t.budgeting.no_wallet || "Semua dompet"}
+                  </SelectItem>
+                  {wallets.map((wallet) => (
+                    <SelectItem key={wallet.id} value={wallet.id}>
+                      {wallet.icon} {wallet.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedWallet && (
+                <p className="text-xs text-muted-foreground">
+                  {t.budgeting.wallet_info ||
+                    "Anggaran hanya menghitung transaksi dari dompet ini."}
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>

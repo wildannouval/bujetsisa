@@ -21,9 +21,10 @@ import {
 import { useTranslation } from "@/hooks/use-translation";
 import { Debt } from "@/lib/types";
 import { createDebt, updateDebt } from "@/lib/actions/debts";
-import { useState } from "react";
+import { getWallets } from "@/lib/actions/wallets";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Plus, CalendarIcon } from "lucide-react";
+import { Plus, CalendarIcon, Link2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
@@ -34,6 +35,12 @@ import {
 } from "@/components/ui/popover";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { useRouter } from "next/navigation";
+
+interface Wallet {
+  id: string;
+  name: string;
+  icon: string;
+}
 
 interface DebtDialogProps {
   debt?: Debt;
@@ -49,10 +56,26 @@ export function DebtDialog({ debt, open, onOpenChange }: DebtDialogProps) {
   const [dueDate, setDueDate] = useState<Date | undefined>(
     debt?.due_date ? new Date(debt.due_date) : undefined,
   );
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [selectedWalletId, setSelectedWalletId] = useState<string>(
+    (debt as any)?.wallet_id || "",
+  );
 
   const isEdit = !!debt;
   const isOpen = open !== undefined ? open : internalOpen;
   const setIsOpen = onOpenChange || setInternalOpen;
+
+  // Load wallets when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      loadWallets();
+    }
+  }, [isOpen]);
+
+  const loadWallets = async () => {
+    const walletsData = await getWallets();
+    setWallets(walletsData as Wallet[]);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,6 +84,9 @@ export function DebtDialog({ debt, open, onOpenChange }: DebtDialogProps) {
     const formData = new FormData(e.currentTarget);
     if (dueDate) {
       formData.set("due_date", dueDate.toISOString());
+    }
+    if (selectedWalletId) {
+      formData.set("wallet_id", selectedWalletId);
     }
 
     try {
@@ -84,6 +110,8 @@ export function DebtDialog({ debt, open, onOpenChange }: DebtDialogProps) {
       setLoading(false);
     }
   };
+
+  const selectedWallet = wallets.find((w) => w.id === selectedWalletId);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -182,6 +210,44 @@ export function DebtDialog({ debt, open, onOpenChange }: DebtDialogProps) {
                   />
                 </PopoverContent>
               </Popover>
+            </div>
+
+            {/* Wallet Link Section */}
+            <div className="grid gap-2 p-3 bg-muted/50 rounded-lg border">
+              <Label className="flex items-center gap-2">
+                <Link2 className="h-4 w-4" />
+                {t.debts.link_wallet || "Hubungkan ke Dompet"}
+              </Label>
+              <Select
+                value={selectedWalletId || "none"}
+                onValueChange={(val) =>
+                  setSelectedWalletId(val === "none" ? "" : val)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      t.debts.select_wallet || "Pilih dompet (opsional)"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">
+                    {t.debts.no_wallet || "Tidak ada"}
+                  </SelectItem>
+                  {wallets.map((wallet) => (
+                    <SelectItem key={wallet.id} value={wallet.id}>
+                      {wallet.icon} {wallet.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedWallet && (
+                <p className="text-xs text-muted-foreground">
+                  {t.debts.wallet_info ||
+                    "Saat dibayar, saldo dompet akan otomatis ter-update."}
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>

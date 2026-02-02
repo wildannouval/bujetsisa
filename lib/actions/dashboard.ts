@@ -28,14 +28,21 @@ export async function getDashboardData() {
   }
 
   // Fetch wallets
-  const { data: wallets } = await supabase
+  const { data: wallets, error: walletsError } = await supabase
     .from("wallets")
-    .select("id, name, balance, currency")
+    .select("id, name, balance")
     .eq("user_id", user.id);
+
+  if (walletsError) {
+    console.error("Error fetching wallets:", walletsError);
+  }
+  console.log("Dashboard - User ID:", user.id);
+  console.log("Dashboard - Wallets:", wallets);
 
   const totalBalance = (wallets || []).reduce((acc, wallet) => {
     return acc + Number(wallet.balance || 0);
   }, 0);
+  console.log("Dashboard - Total Balance:", totalBalance);
 
   // Get current month range
   const now = new Date();
@@ -71,15 +78,20 @@ export async function getDashboardData() {
 
       // Track category spending
       if (t.category_id && t.category) {
-        const catData = t.category as { name: string; icon: string };
-        if (!categorySpending[t.category_id]) {
+        const catArray = t.category as unknown as
+          | Array<{ name: string; icon: string }>
+          | { name: string; icon: string };
+        const catData = Array.isArray(catArray) ? catArray[0] : catArray;
+        if (catData && !categorySpending[t.category_id]) {
           categorySpending[t.category_id] = {
             name: catData.name,
             icon: catData.icon,
             amount: 0,
           };
         }
-        categorySpending[t.category_id].amount += Number(t.amount);
+        if (catData) {
+          categorySpending[t.category_id].amount += Number(t.amount);
+        }
       }
     }
   }

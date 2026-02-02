@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { updateGoalFromWallet } from "./distributions";
 
 export async function getWallets() {
   const supabase = await createClient();
@@ -365,8 +366,13 @@ export async function transferBetweenWallets(formData: FormData) {
     return { error: incomeError.message };
   }
 
+  // Sync goals linked to these wallets
+  await updateGoalFromWallet(fromWalletId);
+  await updateGoalFromWallet(toWalletId);
+
   revalidatePath("/wallets");
   revalidatePath("/dashboard");
   revalidatePath("/transactions");
+  revalidatePath("/goals");
   return { success: true };
 }

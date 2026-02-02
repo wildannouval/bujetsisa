@@ -13,6 +13,7 @@ import {
   PlusCircle,
   Target,
   Banknote,
+  RefreshCw,
 } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
@@ -97,9 +98,19 @@ export function AppSidebar({
       url: "/budgeting",
       icon: PieChart,
     },
+    {
+      title: t.nav.recurring || "Berulang",
+      url: "/recurring",
+      icon: RefreshCw,
+    },
   ];
 
   const navTools = [
+    {
+      title: t.nav.analytics || "Analisis",
+      url: "/analytics",
+      icon: Target,
+    },
     {
       title: t.nav.reports,
       url: "/reports",
@@ -176,6 +187,22 @@ export function AppSidebar({
                 <DialogTitle>{t.sidebar.quick_add}</DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-3 py-4">
+                {/* Income Distribution - Special Action */}
+                <Link
+                  href="/transactions?distribute=true"
+                  onClick={() => setQuickActionOpen(false)}
+                  className="flex flex-col items-center gap-2 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 p-4 transition-all hover:bg-green-100 dark:hover:bg-green-900 hover:shadow-md col-span-2"
+                >
+                  <div className="rounded-full bg-green-100 dark:bg-green-800 p-3">
+                    <Banknote className="h-6 w-6 text-green-600" />
+                  </div>
+                  <span className="text-sm font-medium text-center">
+                    {t.sidebar.distribute_income || "Distribusi Pendapatan"}
+                  </span>
+                  <span className="text-xs text-muted-foreground text-center">
+                    Bagikan ke beberapa dompet sekaligus
+                  </span>
+                </Link>
                 {quickActions.map((action) => (
                   <Link
                     key={action.url}

@@ -136,7 +136,7 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/auth/login");
   };
 
   const handleChangePassword = async () => {
@@ -210,7 +210,7 @@ export default function SettingsPage() {
       } else {
         toast.success(t.settings.account_deleted);
         await supabase.auth.signOut();
-        router.push("/login");
+        router.push("/auth/login");
       }
     } catch (error: any) {
       toast.error(error.message);

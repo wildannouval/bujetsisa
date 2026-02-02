@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { updateGoalFromWallet } from "./distributions";
 
 export async function getTransactions(filters?: {
   type?: string;
@@ -156,10 +157,14 @@ export async function createTransaction(formData: FormData) {
     return { error: error.message };
   }
 
+  // Sync goal progress if wallet is linked to a goal
+  await updateGoalFromWallet(wallet_id);
+
   revalidatePath("/transactions");
   revalidatePath("/dashboard");
   revalidatePath("/wallets");
   revalidatePath("/categories");
+  revalidatePath("/goals");
   return { data };
 }
 

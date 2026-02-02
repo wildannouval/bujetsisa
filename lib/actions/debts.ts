@@ -134,6 +134,7 @@ export async function createDebt(formData: FormData) {
   const type = (formData.get("type") as string) || "payable";
   const status = (formData.get("status") as string) || "unpaid";
   const notes = (formData.get("notes") as string) || null;
+  const wallet_id = (formData.get("wallet_id") as string) || null;
 
   if (!name) {
     return { error: "Name is required" };
@@ -153,6 +154,7 @@ export async function createDebt(formData: FormData) {
       type,
       status,
       notes,
+      wallet_id,
     })
     .select()
     .single();
@@ -177,10 +179,11 @@ export async function updateDebt(id: string, formData: FormData) {
   const type = formData.get("type") as string;
   const status = formData.get("status") as string;
   const notes = (formData.get("notes") as string) || null;
+  const wallet_id = (formData.get("wallet_id") as string) || null;
 
   const { data, error } = await supabase
     .from("debts")
-    .update({ name, amount, due_date, type, status, notes })
+    .update({ name, amount, due_date, type, status, notes, wallet_id })
     .eq("id", id)
     .select()
     .single();
@@ -213,6 +216,52 @@ export async function deleteDebt(id: string) {
 export async function markDebtAsPaid(id: string) {
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  // Get debt details first
+  const { data: debt } = await supabase
+    .from("debts")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (!debt) {
+    return { error: "Debt not found" };
+  }
+
+  // If debt has linked wallet, create transaction
+  if (debt.wallet_id) {
+    // payable = hutang (bayar = expense)
+    // receivable = piutang (terima = income)
+    const transactionType = debt.type === "payable" ? "expense" : "income";
+    const description =
+      debt.type === "payable"
+        ? `Bayar hutang: ${debt.name}`
+        : `Terima piutang: ${debt.name}`;
+
+    const { error: transactionError } = await supabase
+      .from("transactions")
+      .insert({
+        user_id: user.id,
+        wallet_id: debt.wallet_id,
+        amount: debt.amount,
+        type: transactionType,
+        description,
+        date: new Date().toISOString().split("T")[0],
+      });
+
+    if (transactionError) {
+      console.error("Error creating transaction for debt:", transactionError);
+      return { error: transactionError.message };
+    }
+  }
+
+  // Update debt status
   const { data, error } = await supabase
     .from("debts")
     .update({ status: "paid" })
@@ -227,6 +276,9 @@ export async function markDebtAsPaid(id: string) {
 
   revalidatePath("/debts");
   revalidatePath("/dashboard");
+  revalidatePath("/wallets");
+  revalidatePath("/transactions");
+  revalidatePath("/goals");
   return { data };
 }
 

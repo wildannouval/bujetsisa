@@ -21,6 +21,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/hooks/use-translation";
 import { toast } from "sonner";
+import Link from "next/link";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export function LoginForm({
   className,
@@ -28,6 +30,7 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { t } = useTranslation();
@@ -48,6 +51,7 @@ export function LoginForm({
         return;
       }
 
+      toast.success(t.auth.login_success || "Login berhasil!");
       router.push("/dashboard");
       router.refresh();
     } catch (error) {
@@ -59,13 +63,11 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">{t.auth.login}</CardTitle>
+      <Card className="shadow-lg">
+        <CardHeader className="text-center space-y-2">
+          <CardTitle className="text-2xl font-bold">{t.auth.login}</CardTitle>
           <CardDescription>
-            {t.auth.already_have_account
-              ? "Welcome back"
-              : "Login to your account"}
+            {t.auth.login_desc || "Masuk ke akun Anda untuk melanjutkan"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -76,39 +78,72 @@ export function LoginForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="email@example.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
+                  className="h-11"
                 />
               </Field>
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">{t.auth.password}</FieldLabel>
-                  <a
+                  <Link
                     href="#"
-                    className="ml-auto text-sm underline-offset-4 hover:underline"
+                    className="ml-auto text-sm text-muted-foreground underline-offset-4 hover:underline hover:text-primary"
                   >
                     {t.auth.forgot_password}
-                  </a>
+                  </Link>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    className="h-11 pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </Field>
-              <Field>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? t.common.loading : t.auth.login}
+              <Field className="pt-2">
+                <Button
+                  type="submit"
+                  className="w-full h-11"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t.common.loading}
+                    </>
+                  ) : (
+                    t.auth.login
+                  )}
                 </Button>
-                <FieldDescription className="text-center">
+                <FieldDescription className="text-center pt-4">
                   {t.auth.dont_have_account}{" "}
-                  <a href="/auth/sign-up">{t.auth.signup}</a>
+                  <Link
+                    href="/auth/sign-up"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {t.auth.signup}
+                  </Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>

@@ -48,7 +48,8 @@ export async function getBudgetsWithSpending() {
     .select(
       `
       *,
-      category:categories(id, name, icon, type)
+      category:categories(id, name, icon, type),
+      wallet:wallets(id, name, icon)
     `,
     )
     .eq("user_id", user.id)
@@ -77,12 +78,19 @@ export async function getBudgetsWithSpending() {
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       }
 
-      const { data: transactions } = await supabase
+      let query = supabase
         .from("transactions")
         .select("amount")
         .eq("category_id", budget.category_id)
         .eq("type", "expense")
         .gte("date", startDate.toISOString().split("T")[0]);
+
+      // Filter by wallet if budget is linked to a wallet
+      if (budget.wallet_id) {
+        query = query.eq("wallet_id", budget.wallet_id);
+      }
+
+      const { data: transactions } = await query;
 
       const spent =
         transactions?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
@@ -171,6 +179,7 @@ export async function createBudget(formData: FormData) {
       category_id,
       amount,
       period,
+      wallet_id: (formData.get("wallet_id") as string) || null,
     })
     .select()
     .single();
@@ -192,10 +201,11 @@ export async function updateBudget(id: string, formData: FormData) {
   const amountStr = formData.get("amount") as string;
   const amount = parseFloat(amountStr?.replace(/\./g, "") || "0");
   const period = formData.get("period") as string;
+  const wallet_id = (formData.get("wallet_id") as string) || null;
 
   const { data, error } = await supabase
     .from("budgets")
-    .update({ category_id, amount, period })
+    .update({ category_id, amount, period, wallet_id })
     .eq("id", id)
     .select()
     .single();

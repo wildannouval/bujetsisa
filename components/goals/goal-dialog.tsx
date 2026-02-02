@@ -13,10 +13,11 @@ import { Label } from "@/components/ui/label";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Goal } from "@/lib/types";
 import { createGoal, updateGoal } from "@/lib/actions/goals";
-import { useState } from "react";
+import { getWallets } from "@/lib/actions/wallets";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Plus, Target } from "lucide-react";
+import { Plus, Target, Link2 } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
 import {
   Select,
@@ -41,6 +42,13 @@ const GOAL_ICONS = [
   "🎁",
 ];
 
+interface Wallet {
+  id: string;
+  name: string;
+  balance: number;
+  icon: string;
+}
+
 interface GoalDialogProps {
   goal?: Goal;
   open?: boolean;
@@ -53,9 +61,25 @@ export function GoalDialog({ goal, open, onOpenChange }: GoalDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState(goal?.icon || "🎯");
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [selectedWalletId, setSelectedWalletId] = useState<string>(
+    (goal as any)?.wallet_id || "",
+  );
 
   const dialogOpen = open !== undefined ? open : isOpen;
   const setDialogOpen = onOpenChange || setIsOpen;
+
+  // Load wallets when dialog opens
+  useEffect(() => {
+    if (dialogOpen) {
+      loadWallets();
+    }
+  }, [dialogOpen]);
+
+  const loadWallets = async () => {
+    const walletsData = await getWallets();
+    setWallets(walletsData as Wallet[]);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -63,6 +87,9 @@ export function GoalDialog({ goal, open, onOpenChange }: GoalDialogProps) {
 
     const formData = new FormData(e.currentTarget);
     formData.set("icon", selectedIcon);
+    if (selectedWalletId) {
+      formData.set("wallet_id", selectedWalletId);
+    }
 
     try {
       const result = goal
@@ -83,6 +110,8 @@ export function GoalDialog({ goal, open, onOpenChange }: GoalDialogProps) {
     }
   };
 
+  const selectedWallet = wallets.find((w) => w.id === selectedWalletId);
+
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       {!goal && (
@@ -93,7 +122,7 @@ export function GoalDialog({ goal, open, onOpenChange }: GoalDialogProps) {
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
@@ -142,16 +171,57 @@ export function GoalDialog({ goal, open, onOpenChange }: GoalDialogProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="current_amount">
-              {t.goals.current_amount_label}
+          {/* Wallet Link Section */}
+          <div className="space-y-2 p-3 bg-muted/50 rounded-lg border">
+            <Label className="flex items-center gap-2">
+              <Link2 className="h-4 w-4" />
+              {t.goals.link_wallet || "Hubungkan ke Dompet"}
             </Label>
-            <CurrencyInput
-              name="current_amount"
-              defaultValue={goal?.current_amount}
-              placeholder="0"
-            />
+            <Select
+              value={selectedWalletId || "none"}
+              onValueChange={(val) =>
+                setSelectedWalletId(val === "none" ? "" : val)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={
+                    t.goals.select_wallet || "Pilih dompet (opsional)"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  {t.goals.no_wallet || "Tidak ada (Manual)"}
+                </SelectItem>
+                {wallets.map((wallet) => (
+                  <SelectItem key={wallet.id} value={wallet.id}>
+                    {wallet.icon} {wallet.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedWallet && (
+              <p className="text-xs text-muted-foreground">
+                {t.goals.wallet_info ||
+                  "Progress akan otomatis sinkron dengan saldo dompet ini."}
+              </p>
+            )}
           </div>
+
+          {/* Only show current amount if no wallet is linked */}
+          {!selectedWalletId && (
+            <div className="space-y-2">
+              <Label htmlFor="current_amount">
+                {t.goals.current_amount_label}
+              </Label>
+              <CurrencyInput
+                name="current_amount"
+                defaultValue={goal?.current_amount}
+                placeholder="0"
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="target_date">{t.goals.target_date_label}</Label>

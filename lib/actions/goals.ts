@@ -15,7 +15,12 @@ export async function getGoals() {
 
   const { data, error } = await supabase
     .from("goals")
-    .select("*")
+    .select(
+      `
+      *,
+      wallet:wallets(id, balance)
+    `,
+    )
     .eq("user_id", user.id)
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });
@@ -27,7 +32,18 @@ export async function getGoals() {
 
   // Add calculated fields
   return (data || []).map((goal) => {
-    const current = Number(goal.current_amount) || 0;
+    // If goal is linked to wallet, use wallet balance as current_amount
+    let current = Number(goal.current_amount) || 0;
+    if (goal.wallet && goal.wallet_id) {
+      // Wallet data is returned as array or object depending on Supabase query
+      const walletData = Array.isArray(goal.wallet)
+        ? goal.wallet[0]
+        : goal.wallet;
+      if (walletData) {
+        current = Number(walletData.balance) || 0;
+      }
+    }
+
     const target = Number(goal.target_amount) || 0;
     const remaining = Math.max(target - current, 0);
     const percentage =
@@ -52,6 +68,7 @@ export async function getGoals() {
 
     return {
       ...goal,
+      current_amount: current, // Use synced amount
       remaining,
       percentage,
       daysRemaining,
@@ -136,6 +153,8 @@ export async function createGoal(formData: FormData) {
   );
   const target_date = (formData.get("target_date") as string) || null;
   const icon = (formData.get("icon") as string) || "🎯";
+  const wallet_id = (formData.get("wallet_id") as string) || null;
+  const is_emergency_fund = formData.get("is_emergency_fund") === "true";
 
   if (!name) {
     return { error: "Name is required" };
@@ -145,15 +164,30 @@ export async function createGoal(formData: FormData) {
     return { error: "Target amount must be greater than 0" };
   }
 
+  // If wallet is linked, get current wallet balance as current_amount
+  let initialAmount = current_amount;
+  if (wallet_id) {
+    const { data: wallet } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("id", wallet_id)
+      .single();
+    if (wallet) {
+      initialAmount = Number(wallet.balance) || 0;
+    }
+  }
+
   const { data, error } = await supabase
     .from("goals")
     .insert({
       user_id: user.id,
       name,
       target_amount,
-      current_amount,
+      current_amount: initialAmount,
       target_date,
       icon,
+      wallet_id,
+      is_emergency_fund,
     })
     .select()
     .single();
@@ -181,10 +215,21 @@ export async function updateGoal(id: string, formData: FormData) {
   const target_date = (formData.get("target_date") as string) || null;
   const icon = (formData.get("icon") as string) || "🎯";
   const status = (formData.get("status") as string) || "active";
+  const wallet_id = (formData.get("wallet_id") as string) || null;
+  const is_emergency_fund = formData.get("is_emergency_fund") === "true";
 
   const { data, error } = await supabase
     .from("goals")
-    .update({ name, target_amount, current_amount, target_date, icon, status })
+    .update({
+      name,
+      target_amount,
+      current_amount,
+      target_date,
+      icon,
+      status,
+      wallet_id,
+      is_emergency_fund,
+    })
     .eq("id", id)
     .select()
     .single();

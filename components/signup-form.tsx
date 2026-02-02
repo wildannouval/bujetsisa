@@ -21,13 +21,18 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/hooks/use-translation";
 import { toast } from "sonner";
+import Link from "next/link";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { t } = useTranslation();
@@ -35,14 +40,29 @@ export function SignupForm({
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      toast.error(t.auth.password_mismatch || "Kata sandi tidak cocok");
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      toast.error(t.auth.password_too_short || "Kata sandi minimal 6 karakter");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${location.origin}/auth/callback`,
+          data: {
+            name: name,
+          },
         },
       });
 
@@ -51,9 +71,12 @@ export function SignupForm({
         return;
       }
 
-      toast.success(t.auth.signup_success);
-      // Optional: Redirect to login or show success message
-      // router.push("/auth/login")
+      // If signup successful, auto-login and redirect to dashboard
+      if (data.user) {
+        toast.success(t.auth.signup_success || "Akun berhasil dibuat!");
+        router.push("/dashboard");
+        router.refresh();
+      }
     } catch (error) {
       toast.error("An unexpected error occurred");
     } finally {
@@ -63,44 +86,107 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">{t.auth.signup}</CardTitle>
-          <CardDescription>Create an account to get started</CardDescription>
+      <Card className="shadow-lg">
+        <CardHeader className="text-center space-y-2">
+          <CardTitle className="text-2xl font-bold">{t.auth.signup}</CardTitle>
+          <CardDescription>
+            {t.auth.signup_desc || "Buat akun baru untuk memulai"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup}>
             <FieldGroup>
               <Field>
+                <FieldLabel htmlFor="name">{t.auth.name || "Nama"}</FieldLabel>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Nama lengkap Anda"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
+                  className="h-11"
+                />
+              </Field>
+              <Field>
                 <FieldLabel htmlFor="email">{t.auth.email}</FieldLabel>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="email@example.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
+                  className="h-11"
                 />
               </Field>
               <Field>
                 <FieldLabel htmlFor="password">{t.auth.password}</FieldLabel>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Minimal 6 karakter"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    className="h-11 pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
               </Field>
               <Field>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? t.common.loading : t.auth.signup}
+                <FieldLabel htmlFor="confirmPassword">
+                  {t.auth.confirm_password || "Konfirmasi Kata Sandi"}
+                </FieldLabel>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Ulangi kata sandi"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={loading}
+                  className="h-11"
+                />
+              </Field>
+              <Field className="pt-2">
+                <Button
+                  type="submit"
+                  className="w-full h-11"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t.common.loading}
+                    </>
+                  ) : (
+                    t.auth.signup
+                  )}
                 </Button>
-                <FieldDescription className="text-center">
+                <FieldDescription className="text-center pt-4">
                   {t.auth.already_have_account}{" "}
-                  <a href="/auth/login">{t.auth.login}</a>
+                  <Link
+                    href="/auth/login"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {t.auth.login}
+                  </Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>

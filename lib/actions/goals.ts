@@ -3,50 +3,283 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function transferBudgetToGoal(
-  goalId: string,
-  amount: number,
-  goalName: string,
-) {
+export async function getGoals() {
   const supabase = await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) {
+    return [];
+  }
 
-  if (!user) return { error: "Sesi berakhir, silakan login kembali." };
-  if (amount <= 0) return { error: "Tidak ada saldo yang bisa ditabung." };
+  const { data, error } = await supabase
+    .from("goals")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("status", { ascending: true })
+    .order("created_at", { ascending: false });
 
-  // 1. Ambil data Goal saat ini
+  if (error) {
+    console.error("Error fetching goals:", error);
+    return [];
+  }
+
+  // Add calculated fields
+  return (data || []).map((goal) => {
+    const current = Number(goal.current_amount) || 0;
+    const target = Number(goal.target_amount) || 0;
+    const remaining = Math.max(target - current, 0);
+    const percentage =
+      target > 0 ? Math.min(Math.round((current / target) * 100), 100) : 0;
+
+    // Calculate days remaining
+    let daysRemaining = null;
+    if (goal.target_date) {
+      const targetDate = new Date(goal.target_date);
+      const today = new Date();
+      daysRemaining = Math.ceil(
+        (targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
+    }
+
+    // Calculate monthly saving needed
+    let monthlySavingNeeded = null;
+    if (daysRemaining && daysRemaining > 0 && remaining > 0) {
+      const monthsRemaining = Math.max(daysRemaining / 30, 1);
+      monthlySavingNeeded = Math.ceil(remaining / monthsRemaining);
+    }
+
+    return {
+      ...goal,
+      remaining,
+      percentage,
+      daysRemaining,
+      monthlySavingNeeded,
+    };
+  });
+}
+
+export async function getGoalStats() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      totalGoals: 0,
+      activeGoals: 0,
+      completedGoals: 0,
+      totalTarget: 0,
+      totalSaved: 0,
+      overallProgress: 0,
+    };
+  }
+
+  const { data: goals } = await supabase
+    .from("goals")
+    .select("*")
+    .eq("user_id", user.id);
+
+  if (!goals) {
+    return {
+      totalGoals: 0,
+      activeGoals: 0,
+      completedGoals: 0,
+      totalTarget: 0,
+      totalSaved: 0,
+      overallProgress: 0,
+    };
+  }
+
+  const totalGoals = goals.length;
+  const activeGoals = goals.filter((g) => g.status === "active").length;
+  const completedGoals = goals.filter((g) => g.status === "completed").length;
+  const totalTarget = goals.reduce(
+    (sum, g) => sum + Number(g.target_amount),
+    0,
+  );
+  const totalSaved = goals.reduce(
+    (sum, g) => sum + Number(g.current_amount),
+    0,
+  );
+  const overallProgress =
+    totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
+
+  return {
+    totalGoals,
+    activeGoals,
+    completedGoals,
+    totalTarget,
+    totalSaved,
+    overallProgress,
+  };
+}
+
+export async function createGoal(formData: FormData) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const name = formData.get("name") as string;
+  const targetAmountStr = formData.get("target_amount") as string;
+  const target_amount = parseFloat(targetAmountStr?.replace(/\./g, "") || "0");
+  const currentAmountStr = formData.get("current_amount") as string;
+  const current_amount = parseFloat(
+    currentAmountStr?.replace(/\./g, "") || "0",
+  );
+  const target_date = (formData.get("target_date") as string) || null;
+  const icon = (formData.get("icon") as string) || "🎯";
+
+  if (!name) {
+    return { error: "Name is required" };
+  }
+
+  if (target_amount <= 0) {
+    return { error: "Target amount must be greater than 0" };
+  }
+
+  const { data, error } = await supabase
+    .from("goals")
+    .insert({
+      user_id: user.id,
+      name,
+      target_amount,
+      current_amount,
+      target_date,
+      icon,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating goal:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/goals");
+  revalidatePath("/dashboard");
+  return { data };
+}
+
+export async function updateGoal(id: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const name = formData.get("name") as string;
+  const targetAmountStr = formData.get("target_amount") as string;
+  const target_amount = parseFloat(targetAmountStr?.replace(/\./g, "") || "0");
+  const currentAmountStr = formData.get("current_amount") as string;
+  const current_amount = parseFloat(
+    currentAmountStr?.replace(/\./g, "") || "0",
+  );
+  const target_date = (formData.get("target_date") as string) || null;
+  const icon = (formData.get("icon") as string) || "🎯";
+  const status = (formData.get("status") as string) || "active";
+
+  const { data, error } = await supabase
+    .from("goals")
+    .update({ name, target_amount, current_amount, target_date, icon, status })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating goal:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/goals");
+  revalidatePath("/dashboard");
+  return { data };
+}
+
+export async function deleteGoal(id: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("goals").delete().eq("id", id);
+
+  if (error) {
+    console.error("Error deleting goal:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/goals");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function addToGoal(id: string, amount: number) {
+  const supabase = await createClient();
+
+  const { data: goal } = await supabase
+    .from("goals")
+    .select("current_amount, target_amount")
+    .eq("id", id)
+    .single();
+
+  if (!goal) {
+    return { error: "Goal not found" };
+  }
+
+  const newAmount = (Number(goal.current_amount) || 0) + amount;
+  const status = newAmount >= goal.target_amount ? "completed" : "active";
+
+  const { data, error } = await supabase
+    .from("goals")
+    .update({ current_amount: newAmount, status })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error adding to goal:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/goals");
+  revalidatePath("/dashboard");
+  return { data };
+}
+
+export async function withdrawFromGoal(id: string, amount: number) {
+  const supabase = await createClient();
+
   const { data: goal } = await supabase
     .from("goals")
     .select("current_amount")
-    .eq("id", goalId)
+    .eq("id", id)
     .single();
 
-  if (!goal) return { error: "Target tidak ditemukan." };
+  if (!goal) {
+    return { error: "Goal not found" };
+  }
 
-  const newAmount = Number(goal.current_amount) + amount;
+  const currentAmount = Number(goal.current_amount) || 0;
+  if (amount > currentAmount) {
+    return { error: "Insufficient amount" };
+  }
 
-  // 2. Update saldo di tabel Goals
-  const { error: goalError } = await supabase
+  const newAmount = currentAmount - amount;
+
+  const { data, error } = await supabase
     .from("goals")
-    .update({ current_amount: newAmount })
-    .eq("id", goalId);
+    .update({ current_amount: newAmount, status: "active" })
+    .eq("id", id)
+    .select()
+    .single();
 
-  if (goalError) return { error: goalError.message };
+  if (error) {
+    console.error("Error withdrawing from goal:", error);
+    return { error: error.message };
+  }
 
-  // 3. Catat sebagai transaksi agar jatah bulanan berkurang secara resmi
-  // Kita asumsikan ada kategori bernama 'Tabungan' atau gunakan kategori umum
-  const { error: txError } = await supabase.from("transactions").insert({
-    user_id: user.id,
-    amount: amount,
-    type: "expense",
-    description: `Alokasi sisa budget ke Goal: ${goalName}`,
-    date: new Date().toISOString().split("T")[0],
-    // wallet_id: (Anda bisa menambahkan logika memilih wallet utama di sini)
-  });
-
-  revalidatePath("/");
-  revalidatePath("/budgeting"); // Sesuaikan dengan path halaman goals Anda
-  return { success: true };
+  revalidatePath("/goals");
+  revalidatePath("/dashboard");
+  return { data };
 }

@@ -1,81 +1,78 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import { updateAvatar } from "@/lib/actions/profile";
-import {
-  IconRefresh,
-  IconUser,
-  IconCheck,
-  IconLoader2,
-} from "@tabler/icons-react";
-import { toast } from "sonner";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useDebounce } from "use-debounce";
+import Image from "next/image";
+import { RefreshCcw } from "lucide-react";
+import { useTranslation } from "@/hooks/use-translation";
 
-// PASTIKAN ADA KATA 'export' DI DEPAN FUNCTION
+interface AvatarPickerProps {
+  currentAvatar?: string;
+  onAvatarChange: (url: string) => void;
+}
+
 export function AvatarPicker({
-  url,
-  username,
-}: {
-  url?: string;
-  username: string;
-}) {
-  const [loading, setLoading] = React.useState(false);
-  const router = useRouter();
+  currentAvatar,
+  onAvatarChange,
+}: AvatarPickerProps) {
+  const { t } = useTranslation();
+  const [seed, setSeed] = useState("");
+  const [debouncedSeed] = useDebounce(seed, 500);
 
-  const generateNewAvatar = async () => {
-    try {
-      setLoading(true);
-      // Gunakan timestamp untuk memastikan URL unik (Cache Busting)
-      const seed = `${username}-${Date.now()}`;
-      const newUrl = `https://api.dicebear.com/9.x/notionists/svg?seed=${seed}&flip=true`;
+  const baseUrl = "https://api.dicebear.com/9.x/notionists/svg";
 
-      const result = await updateAvatar(newUrl);
+  // If seed is empty, we might show a default or the current avatar
+  // If debouncedSeed is present, we show the generated one.
 
-      if (result.success) {
-        toast.success("Karakter berhasil diperbarui!");
-        // router.refresh() akan mengambil ulang data untuk Sidebar (Server Component)
-        router.refresh();
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Gagal memperbarui avatar.");
-    } finally {
-      setLoading(false);
-    }
+  const generatedUrl = debouncedSeed
+    ? `${baseUrl}?seed=${encodeURIComponent(debouncedSeed)}`
+    : currentAvatar || `${baseUrl}?seed=default`;
+
+  const handleRandomize = () => {
+    const randomSeed = Math.random().toString(36).substring(7);
+    setSeed(randomSeed);
+  };
+
+  const handleApply = () => {
+    onAvatarChange(generatedUrl);
   };
 
   return (
-    <div className="flex flex-col items-center gap-6">
-      <div className="relative">
-        <Avatar className="h-28 w-28 border-4 border-background shadow-2xl transition-all">
-          {/* Key={url} memaksa re-render elemen img saat URL dari database berubah */}
-          <AvatarImage src={url} className="object-cover" key={url} />
-          <AvatarFallback className="bg-primary/10 text-primary">
-            <IconUser size={40} />
-          </AvatarFallback>
-        </Avatar>
-        {!loading && url && (
-          <div className="absolute -bottom-1 -right-1 bg-primary text-white p-1.5 rounded-full border-4 border-background shadow-lg">
-            <IconCheck size={14} strokeWidth={4} />
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-4">
+        <div className="relative h-20 w-20 overflow-hidden rounded-full border">
+          <Image
+            src={generatedUrl}
+            alt="Avatar Preview"
+            fill
+            className="object-cover"
+            unoptimized // Dicebear returns SVG
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>Generate Avatar</Label>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter seed (e.g. your name)"
+              value={seed}
+              onChange={(e) => setSeed(e.target.value)}
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRandomize}
+              title="Randomize"
+            >
+              <RefreshCcw className="h-4 w-4" />
+            </Button>
           </div>
-        )}
+        </div>
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={generateNewAvatar}
-        disabled={loading}
-        className="font-bold border-2"
-      >
-        {loading ? (
-          <IconLoader2 className="mr-2 animate-spin size-4" />
-        ) : (
-          <IconRefresh className="mr-2 size-4" />
-        )}
-        Acak Karakter
+      <Button onClick={handleApply} disabled={!seed && !currentAvatar}>
+        Use this Avatar
       </Button>
     </div>
   );

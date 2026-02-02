@@ -1,0 +1,23 @@
+
+> build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 28.2s
+  Running TypeScript ...
+Failed to compile.
+
+./components/date-range-picker.tsx:10:26
+Type error: Cannot find module '@/components/ui/calendar' or its corresponding type declarations.
+
+   8 | import { cn } from "@/lib/utils";
+   9 | import { Button } from "@/components/ui/button";
+> 10 | import { Calendar } from "@/components/ui/calendar";
+     |                          ^
+  11 | import {
+  12 |   Popover,
+  13 |   PopoverContent,
+Next.js build worker exited with code: 1 and signal: null

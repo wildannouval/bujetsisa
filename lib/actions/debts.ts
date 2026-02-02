@@ -3,97 +3,249 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function createDebtLoan(formData: FormData) {
+export async function getDebts() {
   const supabase = await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  if (!user) {
+    return [];
+  }
 
-  const { error } = await supabase.from("debts_loans").insert({
-    user_id: user.id,
-    person_name: formData.get("person_name"),
-    amount: Number(formData.get("amount")),
-    current_amount: 0,
-    type: formData.get("type"),
-    due_date: formData.get("due_date") || null,
-    description: formData.get("description"),
-    status: "pending",
+  const { data, error } = await supabase
+    .from("debts")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("status", { ascending: true })
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching debts:", error);
+    return [];
+  }
+
+  // Add calculated fields
+  return (data || []).map((debt) => {
+    let daysUntilDue = null;
+    let isOverdue = false;
+
+    if (debt.due_date && debt.status === "unpaid") {
+      const dueDate = new Date(debt.due_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      dueDate.setHours(0, 0, 0, 0);
+      daysUntilDue = Math.ceil(
+        (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      isOverdue = daysUntilDue < 0;
+    }
+
+    return {
+      ...debt,
+      daysUntilDue,
+      isOverdue,
+    };
   });
-
-  if (error) return { error: error.message };
-  revalidatePath("/debts");
-  revalidatePath("/");
-  return { success: true };
 }
 
-export async function payDebtLoan(
-  id: string,
-  walletId: string,
-  paymentAmount: number,
-) {
+export async function getDebtStats() {
   const supabase = await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  if (!user) {
+    return {
+      totalDebts: 0,
+      totalPayable: 0,
+      totalReceivable: 0,
+      unpaidDebts: 0,
+      overdueDebts: 0,
+      paidDebts: 0,
+    };
+  }
 
-  const { data: item } = await supabase
-    .from("debts_loans")
+  const { data: debts } = await supabase
+    .from("debts")
     .select("*")
-    .eq("id", id)
-    .single();
-  const { data: wallet } = await supabase
-    .from("wallets")
-    .select("balance")
-    .eq("id", walletId)
-    .single();
+    .eq("user_id", user.id);
 
-  if (!item || !wallet) return { error: "Data tidak ditemukan" };
+  if (!debts) {
+    return {
+      totalDebts: 0,
+      totalPayable: 0,
+      totalReceivable: 0,
+      unpaidDebts: 0,
+      overdueDebts: 0,
+      paidDebts: 0,
+    };
+  }
 
-  const newPaidAmount = Number(item.current_amount) + paymentAmount;
-  const newStatus = newPaidAmount >= Number(item.amount) ? "paid" : "pending";
-  const newWalletBalance =
-    item.type === "debt"
-      ? Number(wallet.balance) - paymentAmount
-      : Number(wallet.balance) + paymentAmount;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  // 1. Update status hutang
-  await supabase
-    .from("debts_loans")
-    .update({
-      current_amount: newPaidAmount,
-      status: newStatus,
+  const totalDebts = debts.length;
+  const unpaidDebts = debts.filter((d) => d.status === "unpaid").length;
+  const paidDebts = debts.filter((d) => d.status === "paid").length;
+
+  // Calculate totals
+  const totalPayable = debts
+    .filter((d) => d.type === "payable" && d.status === "unpaid")
+    .reduce((sum, d) => sum + Number(d.amount), 0);
+
+  const totalReceivable = debts
+    .filter((d) => d.type === "receivable" && d.status === "unpaid")
+    .reduce((sum, d) => sum + Number(d.amount), 0);
+
+  // Count overdue debts
+  const overdueDebts = debts.filter((d) => {
+    if (d.status === "paid" || !d.due_date) return false;
+    const dueDate = new Date(d.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate < today;
+  }).length;
+
+  return {
+    totalDebts,
+    totalPayable,
+    totalReceivable,
+    unpaidDebts,
+    overdueDebts,
+    paidDebts,
+  };
+}
+
+export async function createDebt(formData: FormData) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const name = formData.get("name") as string;
+  const amountStr = formData.get("amount") as string;
+  const amount = parseFloat(amountStr?.replace(/\./g, "") || "0");
+  const due_date = (formData.get("due_date") as string) || null;
+  const type = (formData.get("type") as string) || "payable";
+  const status = (formData.get("status") as string) || "unpaid";
+  const notes = (formData.get("notes") as string) || null;
+
+  if (!name) {
+    return { error: "Name is required" };
+  }
+
+  if (amount <= 0) {
+    return { error: "Amount must be greater than 0" };
+  }
+
+  const { data, error } = await supabase
+    .from("debts")
+    .insert({
+      user_id: user.id,
+      name,
+      amount,
+      due_date,
+      type,
+      status,
+      notes,
     })
-    .eq("id", id);
+    .select()
+    .single();
 
-  // 2. Update saldo dompet
-  await supabase
-    .from("wallets")
-    .update({ balance: newWalletBalance })
-    .eq("id", walletId);
-
-  // 3. Catat di riwayat transaksi
-  await supabase.from("transactions").insert({
-    user_id: user.id,
-    wallet_id: walletId,
-    amount: paymentAmount,
-    type: item.type === "debt" ? "expense" : "income",
-    description: `Cicilan ${item.type === "debt" ? "Hutang ke" : "Piutang dari"} ${item.person_name}`,
-    date: new Date().toISOString().split("T")[0],
-  });
+  if (error) {
+    console.error("Error creating debt:", error);
+    return { error: error.message };
+  }
 
   revalidatePath("/debts");
-  revalidatePath("/wallets");
-  revalidatePath("/");
-  return { success: true };
+  revalidatePath("/dashboard");
+  return { data };
+}
+
+export async function updateDebt(id: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const name = formData.get("name") as string;
+  const amountStr = formData.get("amount") as string;
+  const amount = parseFloat(amountStr?.replace(/\./g, "") || "0");
+  const due_date = (formData.get("due_date") as string) || null;
+  const type = formData.get("type") as string;
+  const status = formData.get("status") as string;
+  const notes = (formData.get("notes") as string) || null;
+
+  const { data, error } = await supabase
+    .from("debts")
+    .update({ name, amount, due_date, type, status, notes })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating debt:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/debts");
+  revalidatePath("/dashboard");
+  return { data };
 }
 
 export async function deleteDebt(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("debts_loans").delete().eq("id", id);
-  if (error) return { error: error.message };
+
+  const { error } = await supabase.from("debts").delete().eq("id", id);
+
+  if (error) {
+    console.error("Error deleting debt:", error);
+    return { error: error.message };
+  }
+
   revalidatePath("/debts");
-  revalidatePath("/");
+  revalidatePath("/dashboard");
   return { success: true };
+}
+
+export async function markDebtAsPaid(id: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("debts")
+    .update({ status: "paid" })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error marking debt as paid:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/debts");
+  revalidatePath("/dashboard");
+  return { data };
+}
+
+export async function markDebtAsUnpaid(id: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("debts")
+    .update({ status: "unpaid" })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error marking debt as unpaid:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/debts");
+  revalidatePath("/dashboard");
+  return { data };
 }

@@ -3,131 +3,370 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function createWallet(formData: FormData) {
+export async function getWallets() {
   const supabase = await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) {
+    return [];
+  }
 
-  if (!user) throw new Error("Unauthorized");
+  const { data, error } = await supabase
+    .from("wallets")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true });
 
-  const name = formData.get("name") as string;
-  const balance = Number(formData.get("balance"));
-  const type = formData.get("type") as string;
+  if (error) {
+    console.error("Error fetching wallets:", error);
+    return [];
+  }
 
-  const { error } = await supabase.from("wallets").insert({
-    user_id: user.id,
-    name,
-    balance,
-    type,
+  return data || [];
+}
+
+export async function getWallet(id: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("wallets")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (error) {
+    console.error("Error fetching wallet:", error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function getWalletWithTransactions(id: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return null;
+  }
+
+  // Get wallet
+  const { data: wallet, error: walletError } = await supabase
+    .from("wallets")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (walletError || !wallet) {
+    return null;
+  }
+
+  // Get transactions for this wallet
+  const { data: transactions } = await supabase
+    .from("transactions")
+    .select(
+      `
+      *,
+      category:categories(id, name, icon)
+    `,
+    )
+    .eq("wallet_id", id)
+    .order("date", { ascending: false })
+    .limit(50);
+
+  return {
+    ...wallet,
+    transactions: transactions || [],
+  };
+}
+
+export async function getWalletsStats() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      totalBalance: 0,
+      walletCount: 0,
+      monthlyIncome: 0,
+      monthlyExpense: 0,
+    };
+  }
+
+  // Get all wallets
+  const { data: wallets } = await supabase
+    .from("wallets")
+    .select("balance")
+    .eq("user_id", user.id);
+
+  const totalBalance =
+    wallets?.reduce((sum, w) => sum + Number(w.balance), 0) || 0;
+  const walletCount = wallets?.length || 0;
+
+  // Get this month's transactions
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { data: transactions } = await supabase
+    .from("transactions")
+    .select("amount, type")
+    .eq("user_id", user.id)
+    .gte("date", startOfMonth.toISOString().split("T")[0]);
+
+  let monthlyIncome = 0;
+  let monthlyExpense = 0;
+  transactions?.forEach((t) => {
+    if (t.type === "income") {
+      monthlyIncome += Number(t.amount);
+    } else {
+      monthlyExpense += Number(t.amount);
+    }
   });
 
-  if (error) return { error: error.message };
-
-  revalidatePath("/wallets");
-  revalidatePath("/");
-  return { success: true };
+  return { totalBalance, walletCount, monthlyIncome, monthlyExpense };
 }
 
-export async function deleteWallet(id: string) {
+export async function getWalletsWithStats() {
   const supabase = await createClient();
-  const { error } = await supabase.from("wallets").delete().eq("id", id);
 
-  if (error) return { error: error.message };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return [];
+  }
 
-  revalidatePath("/wallets");
-  revalidatePath("/");
-  return { success: true };
+  // Get all wallets
+  const { data: wallets } = await supabase
+    .from("wallets")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true });
+
+  if (!wallets || wallets.length === 0) {
+    return [];
+  }
+
+  // Get current month range
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Get this month's transactions for all wallets
+  const { data: transactions } = await supabase
+    .from("transactions")
+    .select("wallet_id, amount, type, date")
+    .eq("user_id", user.id)
+    .gte("date", startOfMonth.toISOString().split("T")[0]);
+
+  // Get last transaction for each wallet
+  const { data: lastTransactions } = await supabase
+    .from("transactions")
+    .select(
+      "wallet_id, amount, type, date, description, category:categories(name, icon)",
+    )
+    .eq("user_id", user.id)
+    .order("date", { ascending: false });
+
+  // Calculate stats per wallet
+  return wallets.map((wallet) => {
+    const walletTransactions = (transactions || []).filter(
+      (t) => t.wallet_id === wallet.id,
+    );
+
+    const monthlyIncome = walletTransactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const monthlyExpense = walletTransactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const lastTransaction = (lastTransactions || []).find(
+      (t) => t.wallet_id === wallet.id,
+    );
+
+    const transactionCount = walletTransactions.length;
+
+    return {
+      ...wallet,
+      monthlyIncome,
+      monthlyExpense,
+      transactionCount,
+      lastTransaction: lastTransaction || null,
+    };
+  });
 }
 
-export async function transferBalance(formData: FormData) {
+export async function createWallet(formData: FormData) {
   const supabase = await createClient();
-  const fromId = formData.get("from_wallet_id") as string;
-  const toId = formData.get("to_wallet_id") as string;
-  const amount = Number(formData.get("amount"));
 
-  if (fromId === toId)
-    return { error: "Dompet asal dan tujuan tidak boleh sama." };
-  if (amount <= 0) return { error: "Jumlah transfer harus lebih dari 0." };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
 
-  // 1. Ambil data dompet asal (PENTING: ambil balance dan name)
-  const { data: fromWallet } = await supabase
+  const name = formData.get("name") as string;
+  const type = (formData.get("type") as string) || "cash";
+  const balanceStr = formData.get("balance") as string;
+  const balance = parseFloat(balanceStr?.replace(/\./g, "") || "0");
+  const icon = (formData.get("icon") as string) || "💵";
+
+  if (!name) {
+    return { error: "Name is required" };
+  }
+
+  const { data, error } = await supabase
     .from("wallets")
-    .select("balance, name")
-    .eq("id", fromId)
+    .insert({
+      user_id: user.id,
+      name,
+      type,
+      balance,
+      icon,
+    })
+    .select()
     .single();
 
-  // 2. Ambil data dompet tujuan (PENTING: ambil balance dan name)
-  const { data: toWallet } = await supabase
-    .from("wallets")
-    .select("balance, name")
-    .eq("id", toId)
-    .single();
-
-  // 3. Validasi keberadaan dompet dan kecukupan saldo
-  if (!fromWallet) return { error: "Dompet asal tidak ditemukan." };
-  if (!toWallet) return { error: "Dompet tujuan tidak ditemukan." };
-  if (Number(fromWallet.balance) < amount)
-    return { error: "Saldo tidak mencukupi." };
-
-  // 4. Update Saldo Dompet Asal
-  const { error: errorFrom } = await supabase
-    .from("wallets")
-    .update({ balance: Number(fromWallet.balance) - amount })
-    .eq("id", fromId);
-
-  // 5. Update Saldo Dompet Tujuan
-  const { error: errorTo } = await supabase
-    .from("wallets")
-    .update({ balance: Number(toWallet.balance) + amount })
-    .eq("id", toId);
-
-  if (errorFrom || errorTo) return { error: "Gagal memperbarui saldo." };
-
-  // 6. Catat riwayat transaksi otomatis
-  await supabase.from("transactions").insert([
-    {
-      wallet_id: fromId,
-      amount,
-      type: "expense",
-      description: `Transfer ke ${toWallet.name}`,
-      date: new Date().toISOString(),
-    },
-    {
-      wallet_id: toId,
-      amount,
-      type: "income",
-      description: `Transfer dari ${fromWallet.name}`,
-      date: new Date().toISOString(),
-    },
-  ]);
+  if (error) {
+    console.error("Error creating wallet:", error);
+    return { error: error.message };
+  }
 
   revalidatePath("/wallets");
-  revalidatePath("/");
-  return { success: true };
+  revalidatePath("/dashboard");
+  return { data };
 }
 
 export async function updateWallet(id: string, formData: FormData) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("Unauthorized");
 
   const name = formData.get("name") as string;
-  const balance = Number(formData.get("balance"));
   const type = formData.get("type") as string;
+  const balanceStr = formData.get("balance") as string;
+  const balance = parseFloat(balanceStr?.replace(/\./g, "") || "0");
+  const icon = (formData.get("icon") as string) || "💵";
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("wallets")
-    .update({ name, balance, type })
+    .update({ name, type, balance, icon })
     .eq("id", id)
-    .eq("user_id", user.id);
+    .select()
+    .single();
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("Error updating wallet:", error);
+    return { error: error.message };
+  }
 
   revalidatePath("/wallets");
   revalidatePath("/dashboard");
+  revalidatePath(`/wallets/${id}`);
+  return { data };
+}
+
+export async function deleteWallet(id: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("wallets").delete().eq("id", id);
+
+  if (error) {
+    console.error("Error deleting wallet:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/wallets");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function transferBetweenWallets(formData: FormData) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const fromWalletId = formData.get("from_wallet_id") as string;
+  const toWalletId = formData.get("to_wallet_id") as string;
+  const amountStr = formData.get("amount") as string;
+  const amount = parseFloat(amountStr?.replace(/\./g, "") || "0");
+  const description =
+    (formData.get("description") as string) || "Transfer antar dompet";
+
+  if (!fromWalletId || !toWalletId) {
+    return { error: "Both wallets are required" };
+  }
+
+  if (fromWalletId === toWalletId) {
+    return { error: "Cannot transfer to same wallet" };
+  }
+
+  if (amount <= 0) {
+    return { error: "Amount must be greater than 0" };
+  }
+
+  // Check source wallet balance
+  const { data: fromWallet } = await supabase
+    .from("wallets")
+    .select("balance")
+    .eq("id", fromWalletId)
+    .single();
+
+  if (!fromWallet || Number(fromWallet.balance) < amount) {
+    return { error: "Insufficient balance" };
+  }
+
+  // Create expense transaction from source wallet
+  const { error: expenseError } = await supabase.from("transactions").insert({
+    user_id: user.id,
+    wallet_id: fromWalletId,
+    amount,
+    type: "expense",
+    description: `Transfer: ${description}`,
+    date: new Date().toISOString().split("T")[0],
+  });
+
+  if (expenseError) {
+    return { error: expenseError.message };
+  }
+
+  // Create income transaction to destination wallet
+  const { error: incomeError } = await supabase.from("transactions").insert({
+    user_id: user.id,
+    wallet_id: toWalletId,
+    amount,
+    type: "income",
+    description: `Transfer: ${description}`,
+    date: new Date().toISOString().split("T")[0],
+  });
+
+  if (incomeError) {
+    return { error: incomeError.message };
+  }
+
+  revalidatePath("/wallets");
+  revalidatePath("/dashboard");
+  revalidatePath("/transactions");
   return { success: true };
 }

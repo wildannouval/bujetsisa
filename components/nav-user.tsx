@@ -1,11 +1,17 @@
 "use client";
 
 import {
-  IconUserCircle,
-  IconLogout,
-  IconDotsVertical,
-  IconBell,
-} from "@tabler/icons-react";
+  BadgeCheck,
+  ChevronsUpDown,
+  LogOut,
+  Settings,
+  User,
+  Moon,
+  Sun,
+  Globe,
+} from "lucide-react";
+
+import { useTranslation } from "@/hooks/use-translation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -15,6 +21,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
@@ -22,22 +32,38 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client"; // Impor client supabase
+import Link from "next/link";
+import { useTheme } from "next-themes";
 
 export function NavUser({
   user,
 }: {
-  user: { name: string; email: string; avatar: string };
+  user: {
+    name: string;
+    email: string;
+    avatar: string;
+  };
 }) {
   const { isMobile } = useSidebar();
+  const { t, language, setLanguage } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const router = useRouter();
-  const supabase = createClient(); // Inisialisasi client
+  const supabase = createClient();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.refresh(); // Segarkan state auth pada server
-    router.push("/auth/login"); // Arahkan ke halaman login
+    router.push("/login");
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -47,73 +73,139 @@ export function NavUser({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar
-                className="h-8 w-8 rounded-lg border shadow-sm"
-                key={user.avatar}
-              >
+              <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold text-[10px]">
-                  {user.name.substring(0, 2).toUpperCase()}
+                <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
+                  {getInitials(user.name || "U")}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-bold tracking-tight">
-                  {user.name}
+                <span className="truncate font-medium">
+                  {user.name || "User"}
                 </span>
-                <span className="text-muted-foreground truncate text-[10px]">
+                <span className="text-muted-foreground truncate text-xs">
                   {user.email}
                 </span>
               </div>
-              <IconDotsVertical className="ml-auto size-4" />
+              <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-56 rounded-2xl p-2"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-3 px-2 py-2 text-left text-sm">
-                <Avatar
-                  className="h-10 w-10 rounded-lg border shadow-md"
-                  key={user.avatar + "-dropdown"}
-                >
+              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg bg-primary/10 text-primary">
-                    {user.name.substring(0, 2).toUpperCase()}
+                  <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
+                    {getInitials(user.name || "U")}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-bold tracking-tight">
-                    {user.name}
+                  <span className="truncate font-medium">
+                    {user.name || "User"}
                   </span>
-                  <span className="text-muted-foreground truncate text-[10px]">
+                  <span className="text-muted-foreground truncate text-xs">
                     {user.email}
                   </span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+
             <DropdownMenuGroup>
-              <DropdownMenuItem
-                onClick={() => router.push("/settings")}
-                className="cursor-pointer"
-              >
-                <IconUserCircle size={16} className="mr-2" /> Pengaturan
+              <DropdownMenuItem asChild>
+                <Link href="/settings" className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  {t.settings.profile}
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                <IconBell size={16} className="mr-2" /> Notifikasi
+              <DropdownMenuItem asChild>
+                <Link href="/settings" className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  {t.nav.settings}
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
+
             <DropdownMenuSeparator />
+
+            <DropdownMenuGroup>
+              {/* Theme Submenu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  {theme === "dark" ? (
+                    <Moon className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Sun className="mr-2 h-4 w-4" />
+                  )}
+                  {t.settings.theme_label}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => setTheme("light")}>
+                      <Sun className="mr-2 h-4 w-4" />
+                      {t.settings.light_mode}
+                      {theme === "light" && (
+                        <BadgeCheck className="ml-auto h-4 w-4 text-green-500" />
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme("dark")}>
+                      <Moon className="mr-2 h-4 w-4" />
+                      {t.settings.dark_mode}
+                      {theme === "dark" && (
+                        <BadgeCheck className="ml-auto h-4 w-4 text-green-500" />
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setTheme("system")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      {t.settings.system_mode}
+                      {theme === "system" && (
+                        <BadgeCheck className="ml-auto h-4 w-4 text-green-500" />
+                      )}
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+
+              {/* Language Submenu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Globe className="mr-2 h-4 w-4" />
+                  {t.settings.language}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={() => setLanguage("id")}>
+                      🇮🇩 Indonesia
+                      {language === "id" && (
+                        <BadgeCheck className="ml-auto h-4 w-4 text-green-500" />
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLanguage("en")}>
+                      🇺🇸 English
+                      {language === "en" && (
+                        <BadgeCheck className="ml-auto h-4 w-4 text-green-500" />
+                      )}
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+            </DropdownMenuGroup>
+
+            <DropdownMenuSeparator />
+
             <DropdownMenuItem
-              onClick={handleLogout} // Memanggil fungsi logout
-              className="text-red-500 focus:text-red-500 cursor-pointer"
+              onClick={handleLogout}
+              className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
             >
-              <IconLogout size={16} className="mr-2" /> Log out
+              <LogOut className="mr-2 h-4 w-4" />
+              {t.nav.logout}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

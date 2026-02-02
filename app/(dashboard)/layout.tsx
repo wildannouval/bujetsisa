@@ -1,40 +1,42 @@
-import { Suspense } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { Skeleton } from "@/components/ui/skeleton";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/auth/login");
+  }
+
+  const userData = {
+    name: user.user_metadata?.name || "User",
+    email: user.email || "",
+    avatar: user.user_metadata?.avatar_url || "",
+  };
+
   return (
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "280px",
-          "--header-height": "64px",
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }
     >
-      {/* 1. Suspense untuk Sidebar */}
-      <Suspense
-        fallback={<div className="w-[280px] h-screen bg-sidebar border-r" />}
-      >
-        <AppSidebar />
-      </Suspense>
-
+      <AppSidebar variant="inset" user={userData} />
       <SidebarInset>
         <SiteHeader />
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          {/* 2. Suspense untuk Page Content (PENTING!) */}
-          <Suspense
-            fallback={<Skeleton className="w-full h-[500px] rounded-2xl" />}
-          >
-            {children}
-          </Suspense>
-        </div>
+        <div className="flex flex-1 flex-col p-4 md:p-6">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

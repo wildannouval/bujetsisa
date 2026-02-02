@@ -1,0 +1,23 @@
+
+> build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 26.7s
+  Running TypeScript ...
+Failed to compile.
+
+./components/date-range-picker.tsx:6:27
+Type error: Cannot find module 'react-day-picker' or its corresponding type declarations.
+
+  4 | import { CalendarIcon } from "lucide-react";
+  5 | import { addDays, format } from "date-fns";
+> 6 | import { DateRange } from "react-day-picker";
+    |                           ^
+  7 |
+  8 | import { cn } from "@/lib/utils";
+  9 | import { Button } from "@/components/ui/button";
+Next.js build worker exited with code: 1 and signal: null

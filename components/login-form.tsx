@@ -1,183 +1,120 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  IconCoin,
-  IconArrowRight,
-  IconLock,
-  IconMail,
-  IconChevronLeft,
-} from "@tabler/icons-react";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { useTranslation } from "@/hooks/use-translation";
+import { toast } from "sonner";
 
 export function LoginForm({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [error, setError] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
+}: React.ComponentProps<"div">) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  const handleMouseMove = React.useCallback(
-    ({ currentTarget, clientX, clientY }: React.MouseEvent) => {
-      const { left, top } = currentTarget.getBoundingClientRect();
-      mouseX.set(clientX - left);
-      mouseY.set(clientY - top);
-    },
-    [mouseX, mouseY],
-  );
+  const { t } = useTranslation();
+  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
-    setIsLoading(true);
-    setError(null);
+    setLoading(true);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (error) throw error;
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
       router.push("/dashboard");
-    } catch (error: any) {
-      setError(error.message || "Invalid credentials");
+      router.refresh();
+    } catch (error) {
+      toast.error("An unexpected error occurred");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-6 w-full max-w-[450px] relative z-10",
-        className,
-      )}
-      {...props}
-    >
-      <Link
-        href="/"
-        className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white transition-colors mb-2 w-fit"
-      >
-        <IconChevronLeft
-          size={14}
-          className="group-hover:-translate-x-1 transition-transform"
-        />
-        Return to Landing
-      </Link>
-
-      <motion.div
-        onMouseMove={handleMouseMove}
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="group relative rounded-[2.5rem] border border-white/10 bg-white/[0.03] backdrop-blur-3xl p-8 md:p-12 overflow-hidden shadow-2xl transition-all duration-700 hover:border-indigo-500/40"
-      >
-        <motion.div
-          className="pointer-events-none absolute -inset-px rounded-[2.5rem] opacity-0 transition duration-500 group-hover:opacity-100"
-          style={{
-            background: useMotionTemplate`radial-gradient(400px circle at ${mouseX}px ${mouseY}px, rgba(99, 102, 241, 0.15), transparent 80%)`,
-          }}
-        />
-
-        <div className="relative z-10 space-y-8">
-          <div className="flex flex-col items-center text-center space-y-6">
-            <div className="bg-indigo-600 p-3 rounded-2xl shadow-xl">
-              <IconCoin className="text-white size-8" />
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-black uppercase tracking-tighter text-white">
-                Welcome Back
-              </h1>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                Initialize secure session
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300 ml-1">
-                Identity
-              </Label>
-              <div className="relative">
-                <IconMail className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
+    <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">{t.auth.login}</CardTitle>
+          <CardDescription>
+            {t.auth.already_have_account
+              ? "Welcome back"
+              : "Login to your account"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin}>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="email">{t.auth.email}</FieldLabel>
                 <Input
+                  id="email"
                   type="email"
-                  placeholder="name@example.com"
-                  className="pl-12 h-14 bg-white/5 border-white/10 rounded-2xl text-white placeholder:text-slate-600 focus:border-indigo-500/50"
+                  placeholder="m@example.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
                 />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center mb-1">
-                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300 ml-1">
-                  Access Key
-                </Label>
-                <Link
-                  href="/auth/forgot-password"
-                  className="text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                  Forgot?
-                </Link>
-              </div>
-              <div className="relative">
-                <IconLock className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
+              </Field>
+              <Field>
+                <div className="flex items-center">
+                  <FieldLabel htmlFor="password">{t.auth.password}</FieldLabel>
+                  <a
+                    href="#"
+                    className="ml-auto text-sm underline-offset-4 hover:underline"
+                  >
+                    {t.auth.forgot_password}
+                  </a>
+                </div>
                 <Input
+                  id="password"
                   type="password"
-                  placeholder="••••••••••••"
-                  className="pl-12 h-14 bg-white/5 border-white/10 rounded-2xl text-white placeholder:text-slate-600 focus:border-indigo-500/50"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
                 />
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-[10px] font-bold uppercase text-red-400 text-center tracking-widest">
-                {error}
-              </p>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full h-16 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-[10px] shadow-2xl border-none transition-all active:scale-95"
-              disabled={isLoading}
-            >
-              {isLoading ? "Validating..." : "Execute Login"}
-              {!isLoading && <IconArrowRight className="ml-2 size-4" />}
-            </Button>
+              </Field>
+              <Field>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? t.common.loading : t.auth.login}
+                </Button>
+                <FieldDescription className="text-center">
+                  {t.auth.dont_have_account}{" "}
+                  <a href="/auth/sign-up">{t.auth.signup}</a>
+                </FieldDescription>
+              </Field>
+            </FieldGroup>
           </form>
-
-          <div className="text-center">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
-              New Commander?{" "}
-              <Link
-                href="/auth/sign-up"
-                className="text-indigo-400 hover:text-indigo-300 transition-colors"
-              >
-                Register Unit
-              </Link>
-            </p>
-          </div>
-        </div>
-      </motion.div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

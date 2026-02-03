@@ -21,16 +21,18 @@ export default async function BudgetingPage() {
   const expenseCategories = categories.filter((c) => c.type === "expense");
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Anggaran</h1>
+    <div className="flex flex-1 flex-col gap-4 p-3 sm:gap-6 sm:p-4 md:gap-8 md:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+          Anggaran
+        </h1>
         <BudgetDialog categories={expenseCategories} />
       </div>
 
       <BudgetSummary stats={stats} />
 
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Daftar Anggaran</h2>
+      <div className="space-y-3 sm:space-y-4">
+        <h2 className="text-base sm:text-lg font-semibold">Daftar Anggaran</h2>
         <BudgetList budgets={budgets} categories={expenseCategories} />
       </div>
     </div>

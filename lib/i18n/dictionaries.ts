@@ -45,6 +45,7 @@ export const id = {
     analytics: "Analisis",
     goals: "Target",
     recurring: "Berulang",
+    investments: "Investasi",
     logout: "Keluar",
   },
   sidebar: {
@@ -453,6 +454,7 @@ export const en: Dictionary = {
     analytics: "Analytics",
     goals: "Goals",
     recurring: "Recurring",
+    investments: "Investments",
     logout: "Logout",
   },
   sidebar: {

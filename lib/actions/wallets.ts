@@ -20,7 +20,7 @@ export async function getWallets() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
-  if (error) {
+  if (error && Object.keys(error).length > 0) {
     console.error("Error fetching wallets:", error);
     return [];
   }
@@ -45,7 +45,7 @@ export async function getWallet(id: string) {
     .eq("user_id", user.id)
     .single();
 
-  if (error) {
+  if (error && Object.keys(error).length > 0) {
     console.error("Error fetching wallet:", error);
     return null;
   }

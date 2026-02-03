@@ -82,3 +82,45 @@ export interface Goal {
   created_at: string;
   updated_at: string;
 }
+
+export interface Investment {
+  id: string;
+  user_id: string;
+  name: string;
+  type:
+    | "stock"
+    | "mutual_fund"
+    | "crypto"
+    | "bond"
+    | "property"
+    | "gold"
+    | "deposit"
+    | "other";
+  ticker?: string;
+  quantity: number;
+  avg_buy_price: number;
+  current_price: number;
+  currency: string;
+  platform?: string;
+  notes?: string;
+  icon: string;
+  status: "active" | "sold";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvestmentTransaction {
+  id: string;
+  user_id: string;
+  investment_id: string;
+  type: "buy" | "sell" | "dividend" | "stock_split";
+  quantity: number;
+  price: number;
+  total_amount: number;
+  fees: number;
+  date: string;
+  notes?: string;
+  created_at: string;
+  // Join result
+  investment?: Pick<Investment, "id" | "name" | "ticker" | "icon">;
+}

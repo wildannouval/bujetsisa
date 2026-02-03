@@ -38,13 +38,13 @@ export default async function AnalyticsPage() {
   const data = insights || defaultInsights;
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-1 flex-col gap-4 p-3 sm:gap-6 sm:p-4 md:gap-8 md:p-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
             Analisis Keuangan
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Insight cerdas untuk kesehatan keuangan Anda
           </p>
         </div>
@@ -61,7 +61,7 @@ export default async function AnalyticsPage() {
         savingsRate={data.savingsRate}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Survival Calculator */}
         <SurvivalCalculator
           totalAvailableFunds={data.totalAvailableFunds}
@@ -88,7 +88,7 @@ export default async function AnalyticsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
               {/* Monthly Data */}
               <div className="space-y-3">
                 <h4 className="font-medium text-sm text-muted-foreground">
@@ -188,7 +188,7 @@ export default async function AnalyticsPage() {
       )}
 
       {/* Debt Summary */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-2">

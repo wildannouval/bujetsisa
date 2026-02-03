@@ -105,15 +105,19 @@ export function WalletCard({ wallet, showDetails = true }: WalletCardProps) {
   return (
     <>
       <Card className="overflow-hidden hover:shadow-lg transition-all duration-300">
-        <div className={`bg-gradient-to-r ${gradient} p-4 text-white`}>
+        <div className={`bg-gradient-to-r ${gradient} p-3 sm:p-4 text-white`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-2xl">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white/20 text-xl sm:text-2xl">
                 {wallet.icon || "💵"}
               </div>
               <div>
-                <h3 className="font-semibold text-lg">{wallet.name}</h3>
-                <p className="text-sm text-white/80">{getWalletTypeName()}</p>
+                <h3 className="font-semibold text-base sm:text-lg">
+                  {wallet.name}
+                </h3>
+                <p className="text-xs sm:text-sm text-white/80">
+                  {getWalletTypeName()}
+                </p>
               </div>
             </div>
             <DropdownMenu>
@@ -148,14 +152,14 @@ export function WalletCard({ wallet, showDetails = true }: WalletCardProps) {
             </DropdownMenu>
           </div>
         </div>
-        <CardContent className="p-4">
-          <div className="space-y-4">
+        <CardContent className="p-3 sm:p-4">
+          <div className="space-y-3 sm:space-y-4">
             {/* Balance */}
             <div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {t.wallets.balance_label}
               </p>
-              <p className="text-2xl font-bold">
+              <p className="text-xl sm:text-2xl font-bold truncate">
                 {formatCurrency(Number(wallet.balance))}
               </p>
             </div>

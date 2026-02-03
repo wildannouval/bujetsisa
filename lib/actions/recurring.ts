@@ -182,6 +182,60 @@ export async function toggleRecurringTransaction(
   return { data };
 }
 
+// Process a specific recurring transaction immediately (Manual trigger)
+export async function processRecurringTransaction(id: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  // Get the recurring transaction
+  const { data: recurring, error: fetchError } = await supabase
+    .from("recurring_transactions")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !recurring) {
+    return { error: "Transaction not found" };
+  }
+
+  // Create the transaction
+  const { error: transactionError } = await supabase
+    .from("transactions")
+    .insert({
+      user_id: user.id,
+      wallet_id: recurring.wallet_id,
+      category_id: recurring.category_id,
+      amount: recurring.amount,
+      type: recurring.type,
+      description: `[Manual] ${recurring.description}`,
+      date: new Date().toISOString().split("T")[0], // Today
+    });
+
+  if (transactionError) {
+    return { error: transactionError.message };
+  }
+
+  // Calculate next date
+  const nextDate = calculateNextDate(recurring.next_date, recurring.frequency);
+
+  // Update next_date
+  await supabase
+    .from("recurring_transactions")
+    .update({ next_date: nextDate })
+    .eq("id", recurring.id);
+
+  revalidatePath("/transactions");
+  revalidatePath("/wallets");
+  revalidatePath("/dashboard");
+  revalidatePath("/recurring");
+
+  return { success: true };
+}
+
 // Process due recurring transactions (called by cron or manual trigger)
 export async function processDueRecurringTransactions() {
   const supabase = await createClient();
@@ -241,6 +295,7 @@ export async function processDueRecurringTransactions() {
   revalidatePath("/transactions");
   revalidatePath("/wallets");
   revalidatePath("/dashboard");
+  revalidatePath("/recurring");
 
   return { processed };
 }

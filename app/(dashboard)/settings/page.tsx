@@ -237,19 +237,21 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex-1 space-y-6 p-4 pt-6 md:p-8">
+    <div className="flex-1 space-y-4 p-3 pt-4 sm:space-y-6 sm:p-4 sm:pt-6 md:p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
             {t.settings.title}
           </h2>
-          <p className="text-muted-foreground">{t.settings.manage_settings}</p>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            {t.settings.manage_settings}
+          </p>
         </div>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-auto lg:grid-cols-4">
+      <Tabs defaultValue="profile" className="space-y-4 sm:space-y-6">
+        <TabsList className="w-full overflow-x-auto flex justify-start gap-1 p-1 h-auto sm:grid sm:grid-cols-4 sm:w-auto">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">{t.settings.profile}</span>

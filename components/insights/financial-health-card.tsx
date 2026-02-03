@@ -68,23 +68,23 @@ export function FinancialHealthCard({
 
   return (
     <Card className="col-span-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Heart className="h-5 w-5 text-red-500" />
+      <CardHeader className="pb-2 p-3 sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
           Kesehatan Keuangan
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
           {/* Health Score */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 Skor Kesehatan
               </span>
               <span
                 className={cn(
-                  "text-2xl font-bold",
+                  "text-xl sm:text-2xl font-bold",
                   getStatusColor(healthStatus),
                 )}
               >
@@ -109,12 +109,12 @@ export function FinancialHealthCard({
           {/* Survival Months */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 Dana Bertahan
               </span>
               <span
                 className={cn(
-                  "text-2xl font-bold",
+                  "text-xl sm:text-2xl font-bold",
                   survivalMonths >= 6
                     ? "text-green-500"
                     : survivalMonths >= 3
@@ -135,12 +135,12 @@ export function FinancialHealthCard({
           {/* Emergency Fund Coverage */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 Dana Darurat
               </span>
               <span
                 className={cn(
-                  "text-2xl font-bold",
+                  "text-xl sm:text-2xl font-bold",
                   monthsOfCoverage >= 6
                     ? "text-green-500"
                     : monthsOfCoverage >= 3
@@ -168,12 +168,12 @@ export function FinancialHealthCard({
           {/* Savings Rate */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 Rasio Tabungan
               </span>
               <span
                 className={cn(
-                  "text-2xl font-bold flex items-center gap-1",
+                  "text-xl sm:text-2xl font-bold flex items-center gap-1",
                   savingsRate >= 20
                     ? "text-green-500"
                     : savingsRate >= 10

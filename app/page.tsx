@@ -91,32 +91,37 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="w-full py-20 md:py-32">
+      <section className="w-full py-12 sm:py-20 md:py-32">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
               Kelola Keuangan Pribadi{" "}
               <span className="bg-gradient-to-r from-emerald-500 to-green-600 bg-clip-text text-transparent">
                 Lebih Mudah
               </span>
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
+            <p className="mx-auto mt-4 sm:mt-6 max-w-2xl text-base sm:text-lg text-muted-foreground md:text-xl">
               BujetSisa membantu Anda mencatat pengeluaran, mengelola anggaran,
               dan mencapai target keuangan dengan antarmuka yang sederhana dan
               powerful.
             </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:gap-4 sm:flex-row">
               <Button
                 size="lg"
                 asChild
-                className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 px-8"
+                className="w-full sm:w-auto gap-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 px-8"
               >
                 <Link href="/auth/sign-up">
                   Mulai Gratis
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="px-8">
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="w-full sm:w-auto px-8"
+              >
                 <Link href="/auth/login">Sudah Punya Akun?</Link>
               </Button>
             </div>
@@ -135,30 +140,32 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="w-full border-t bg-muted/30 py-20">
+      <section className="w-full border-t bg-muted/30 py-12 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight md:text-4xl">
               Semua yang Anda Butuhkan
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
+            <p className="mt-3 sm:mt-4 text-base sm:text-lg text-muted-foreground">
               Fitur lengkap untuk mengelola keuangan pribadi Anda
             </p>
           </div>
-          <div className="mx-auto mt-12 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mx-auto mt-8 sm:mt-12 grid max-w-5xl gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
               <Card
                 key={index}
                 className="border bg-card shadow-sm transition-all hover:shadow-md"
               >
-                <CardHeader className="pb-3">
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500/10 to-green-600/10">
-                    <feature.icon className="h-6 w-6 text-emerald-600" />
+                <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
+                  <div className="mb-2 sm:mb-3 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500/10 to-green-600/10">
+                    <feature.icon className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
                   </div>
-                  <CardTitle className="text-lg">{feature.title}</CardTitle>
+                  <CardTitle className="text-base sm:text-lg">
+                    {feature.title}
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <CardDescription className="text-sm leading-relaxed">
+                <CardContent className="pt-0 p-4 sm:p-6 sm:pt-0">
+                  <CardDescription className="text-xs sm:text-sm leading-relaxed">
                     {feature.description}
                   </CardDescription>
                 </CardContent>
@@ -169,24 +176,24 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="w-full py-20">
+      <section className="w-full py-12 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <Card className="overflow-hidden border-0 bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg">
-            <CardContent className="py-16">
+            <CardContent className="py-10 sm:py-16 px-4 sm:px-6">
               <div className="mx-auto max-w-2xl text-center">
-                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight md:text-4xl">
                   Siap Mengelola Keuangan Anda?
                 </h2>
-                <p className="mt-4 text-lg text-white/90">
+                <p className="mt-3 sm:mt-4 text-base sm:text-lg text-white/90">
                   Bergabunglah sekarang dan mulai perjalanan finansial Anda yang
                   lebih baik.
                 </p>
-                <div className="mt-8">
+                <div className="mt-6 sm:mt-8">
                   <Button
                     size="lg"
                     variant="secondary"
                     asChild
-                    className="gap-2 px-8 font-semibold"
+                    className="w-full sm:w-auto gap-2 px-8 font-semibold"
                   >
                     <Link href="/auth/sign-up">
                       Buat Akun Gratis

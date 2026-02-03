@@ -50,14 +50,18 @@ export default async function ReportsPage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
+    <div className="flex flex-1 flex-col gap-4 p-3 sm:gap-6 sm:p-4 md:gap-8 md:p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Laporan Keuangan</h1>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+          Laporan Keuangan
+        </h1>
       </div>
 
       {/* Financial Summary */}
       <section>
-        <h2 className="text-lg font-semibold mb-4">Ringkasan Keuangan</h2>
+        <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">
+          Ringkasan Keuangan
+        </h2>
         <FinancialSummary summary={financialSummary || defaultSummary} />
       </section>
 
@@ -67,7 +71,7 @@ export default async function ReportsPage() {
       </section>
 
       {/* Two Column Layout */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Category Breakdown */}
         <CategoryBreakdown
           categories={monthlyReport?.categoryBreakdown || []}

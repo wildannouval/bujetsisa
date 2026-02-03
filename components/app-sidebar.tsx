@@ -15,6 +15,7 @@ import {
   Banknote,
   RefreshCw,
   BarChart3,
+  TrendingUp,
 } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
@@ -98,6 +99,11 @@ export function AppSidebar({
       title: t.nav.budgeting,
       url: "/budgeting",
       icon: PieChart,
+    },
+    {
+      title: t.nav.investments || "Investasi",
+      url: "/investments",
+      icon: TrendingUp,
     },
     {
       title: t.nav.recurring || "Berulang",

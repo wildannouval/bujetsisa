@@ -8,6 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { getDashboardData } from "@/lib/actions/dashboard";
+import { getUpcomingRecurring } from "@/lib/actions/recurring";
 import { formatCurrency } from "@/lib/utils";
 import {
   Wallet,
@@ -21,10 +22,16 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+import { UpcomingBills } from "@/components/recurring/upcoming-bills";
+import { BillReminderBanner } from "@/components/recurring/bill-reminder-banner";
 
 async function getData() {
   try {
-    return await getDashboardData();
+    const [dashboardData, upcomingBills] = await Promise.all([
+      getDashboardData(),
+      getUpcomingRecurring(7),
+    ]);
+    return { ...dashboardData, upcomingBills };
   } catch (error) {
     return {
       totalBalance: 0,
@@ -41,6 +48,7 @@ async function getData() {
       },
       debtSummary: { payable: 0, receivable: 0, overdue: 0 },
       topCategories: [],
+      upcomingBills: [],
     };
   }
 }
@@ -62,32 +70,39 @@ export default async function DashboardPage() {
       : 0;
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
+    <div className="flex flex-1 flex-col gap-4 p-3 sm:gap-6 sm:p-4 md:gap-8 md:p-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+          Dashboard
+        </h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Ringkasan keuangan Anda bulan ini
         </p>
       </div>
 
+      {/* Bill Reminder Banner */}
+      <BillReminderBanner bills={data.upcomingBills} />
+
       {/* Main Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {/* Total Balance */}
         <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-100">Total Saldo</p>
-                <p className="text-3xl font-bold mt-1">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-blue-100">
+                  Total Saldo
+                </p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 truncate">
                   {formatCurrency(data.totalBalance, "IDR")}
                 </p>
                 <p className="text-xs text-blue-200 mt-1">
                   {data.activeWalletsCount} dompet aktif
                 </p>
               </div>
-              <div className="rounded-full bg-white/20 p-3">
-                <Wallet className="h-6 w-6" />
+              <div className="rounded-full bg-white/20 p-2 sm:p-3">
+                <Wallet className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
             </div>
           </CardContent>
@@ -95,18 +110,18 @@ export default async function DashboardPage() {
 
         {/* Income */}
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">
                   Pemasukan Bulan Ini
                 </p>
-                <p className="text-2xl font-bold text-green-600 mt-1">
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 mt-1 truncate">
                   +{formatCurrency(data.income, "IDR")}
                 </p>
               </div>
-              <div className="rounded-full bg-green-100 p-3 dark:bg-green-900/20">
-                <TrendingUp className="h-6 w-6 text-green-600" />
+              <div className="rounded-full bg-green-100 p-2 sm:p-3 dark:bg-green-900/20">
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -114,18 +129,18 @@ export default async function DashboardPage() {
 
         {/* Expense */}
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">
                   Pengeluaran Bulan Ini
                 </p>
-                <p className="text-2xl font-bold text-red-600 mt-1">
+                <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 mt-1 truncate">
                   -{formatCurrency(data.expense, "IDR")}
                 </p>
               </div>
-              <div className="rounded-full bg-red-100 p-3 dark:bg-red-900/20">
-                <TrendingDown className="h-6 w-6 text-red-600" />
+              <div className="rounded-full bg-red-100 p-2 sm:p-3 dark:bg-red-900/20">
+                <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 text-red-600" />
               </div>
             </div>
           </CardContent>
@@ -139,24 +154,24 @@ export default async function DashboardPage() {
               : "border-red-200 dark:border-red-800"
           }
         >
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground">
                   Selisih
                 </p>
                 <p
-                  className={`text-2xl font-bold mt-1 ${netAmount >= 0 ? "text-green-600" : "text-red-600"}`}
+                  className={`text-lg sm:text-xl md:text-2xl font-bold mt-1 truncate ${netAmount >= 0 ? "text-green-600" : "text-red-600"}`}
                 >
                   {netAmount >= 0 ? "+" : ""}
                   {formatCurrency(netAmount, "IDR")}
                 </p>
               </div>
               <div
-                className={`rounded-full p-3 ${netAmount >= 0 ? "bg-green-100 dark:bg-green-900/20" : "bg-red-100 dark:bg-red-900/20"}`}
+                className={`rounded-full p-2 sm:p-3 ${netAmount >= 0 ? "bg-green-100 dark:bg-green-900/20" : "bg-red-100 dark:bg-red-900/20"}`}
               >
                 <ArrowUpDown
-                  className={`h-6 w-6 ${netAmount >= 0 ? "text-green-600" : "text-red-600"}`}
+                  className={`h-5 w-5 sm:h-6 sm:w-6 ${netAmount >= 0 ? "text-green-600" : "text-red-600"}`}
                 />
               </div>
             </div>
@@ -165,7 +180,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Secondary Stats Row */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3">
         {/* Goals Progress */}
         <Link href="/goals">
           <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
@@ -274,7 +289,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Bottom Grid */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
         {/* Top Spending Categories */}
         <Card>
           <CardHeader>
@@ -401,6 +416,9 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Upcoming Bills Widget */}
+      <UpcomingBills bills={data.upcomingBills} />
     </div>
   );
 }

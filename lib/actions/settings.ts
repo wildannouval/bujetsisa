@@ -91,28 +91,30 @@ export async function deleteUserAccount() {
     return { error: "Unauthorized" };
   }
 
-  // Delete all user data in order (due to foreign key constraints)
-  // 1. Delete transactions first (depends on wallets and categories)
-  await supabase.from("transactions").delete().eq("user_id", user.id);
+  // Call the database function that deletes all user data AND the auth user
+  const { error } = await supabase.rpc("delete_user_account");
 
-  // 2. Delete budgets (depends on categories)
-  await supabase.from("budgets").delete().eq("user_id", user.id);
+  if (error) {
+    // Fallback: manually delete data if function fails
+    await supabase
+      .from("recurring_transactions")
+      .delete()
+      .eq("user_id", user.id);
+    await supabase.from("transactions").delete().eq("user_id", user.id);
+    await supabase.from("budgets").delete().eq("user_id", user.id);
+    await supabase.from("goals").delete().eq("user_id", user.id);
+    await supabase.from("debts").delete().eq("user_id", user.id);
+    await supabase
+      .from("distribution_templates")
+      .delete()
+      .eq("user_id", user.id);
+    await supabase.from("wallets").delete().eq("user_id", user.id);
+    await supabase.from("categories").delete().eq("user_id", user.id);
+    await supabase.from("user_profiles").delete().eq("user_id", user.id);
 
-  // 3. Delete goals
-  await supabase.from("goals").delete().eq("user_id", user.id);
-
-  // 4. Delete debts
-  await supabase.from("debts").delete().eq("user_id", user.id);
-
-  // 5. Delete wallets
-  await supabase.from("wallets").delete().eq("user_id", user.id);
-
-  // 6. Delete categories
-  await supabase.from("categories").delete().eq("user_id", user.id);
-
-  // Note: Actual user deletion from auth.users typically requires admin privileges
-  // or a Supabase Edge Function. Here we just clear all user data.
-  // The user account will still exist but with no data.
+    // Note: Without the database function, auth.users deletion requires admin API
+    return { success: true, warning: "Data deleted but auth may still exist" };
+  }
 
   return { success: true };
 }

@@ -50,7 +50,7 @@ export async function getFinancialInsights(): Promise<FinancialInsights | null> 
   // Get all wallets for total balance
   const { data: wallets } = await supabase
     .from("wallets")
-    .select("balance")
+    .select("id, balance")
     .eq("user_id", user.id);
 
   const totalBalance =
@@ -63,10 +63,18 @@ export async function getFinancialInsights(): Promise<FinancialInsights | null> 
     .eq("user_id", user.id);
 
   const emergencyFundGoals = goals?.filter((g) => g.is_emergency_fund) || [];
-  const emergencyFundTotal = emergencyFundGoals.reduce(
-    (sum, g) => sum + Number(g.current_amount),
-    0,
-  );
+
+  // Calculate emergency fund total - use wallet balance if linked
+  let emergencyFundTotal = 0;
+  for (const goal of emergencyFundGoals) {
+    if (goal.wallet_id) {
+      const linkedWallet = wallets?.find((w) => w.id === goal.wallet_id);
+      emergencyFundTotal += linkedWallet ? Number(linkedWallet.balance) : 0;
+    } else {
+      emergencyFundTotal += Number(goal.current_amount);
+    }
+  }
+
   const emergencyFundTarget = emergencyFundGoals.reduce(
     (sum, g) => sum + Number(g.target_amount),
     0,
@@ -119,7 +127,8 @@ export async function getFinancialInsights(): Promise<FinancialInsights | null> 
       .reduce((sum, d) => sum + Number(d.amount), 0) || 0;
 
   // Survival Calculation
-  const totalAvailableFunds = totalBalance + emergencyFundTotal;
+  // totalAvailableFunds = totalBalance (emergency fund wallets are already included in totalBalance)
+  const totalAvailableFunds = totalBalance;
   const survivalMonths =
     averageMonthlyExpense > 0
       ? totalAvailableFunds / averageMonthlyExpense
@@ -360,5 +369,119 @@ export async function getSpendingTrends() {
         : 0,
     topCategories,
     totalExpense6m: values.reduce((sum, v) => sum + v, 0),
+  };
+}
+
+// Get monthly comparison data
+export async function getMonthlyComparison(monthsBack: number = 1) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      currentMonth: { income: 0, expense: 0, net: 0, transactionCount: 0 },
+      compareMonth: { income: 0, expense: 0, net: 0, transactionCount: 0 },
+      incomeChange: 0,
+      expenseChange: 0,
+      netChange: 0,
+    };
+  }
+
+  // Calculate date ranges
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const compareMonthStart = new Date(
+    now.getFullYear(),
+    now.getMonth() - monthsBack,
+    1,
+  );
+  const compareMonthEnd = new Date(
+    now.getFullYear(),
+    now.getMonth() - monthsBack + 1,
+    0,
+  );
+
+  // Get current month transactions
+  const { data: currentTransactions } = await supabase
+    .from("transactions")
+    .select("amount, type")
+    .eq("user_id", user.id)
+    .gte("date", currentMonthStart.toISOString().split("T")[0])
+    .lte("date", currentMonthEnd.toISOString().split("T")[0]);
+
+  // Get compare month transactions
+  const { data: compareTransactions } = await supabase
+    .from("transactions")
+    .select("amount, type")
+    .eq("user_id", user.id)
+    .gte("date", compareMonthStart.toISOString().split("T")[0])
+    .lte("date", compareMonthEnd.toISOString().split("T")[0]);
+
+  // Calculate current month totals
+  let currentIncome = 0;
+  let currentExpense = 0;
+  currentTransactions?.forEach((t) => {
+    if (t.type === "income") {
+      currentIncome += Number(t.amount);
+    } else {
+      currentExpense += Number(t.amount);
+    }
+  });
+
+  // Calculate compare month totals
+  let compareIncome = 0;
+  let compareExpense = 0;
+  compareTransactions?.forEach((t) => {
+    if (t.type === "income") {
+      compareIncome += Number(t.amount);
+    } else {
+      compareExpense += Number(t.amount);
+    }
+  });
+
+  // Calculate changes
+  const incomeChange =
+    compareIncome > 0
+      ? ((currentIncome - compareIncome) / compareIncome) * 100
+      : currentIncome > 0
+        ? 100
+        : 0;
+
+  const expenseChange =
+    compareExpense > 0
+      ? ((currentExpense - compareExpense) / compareExpense) * 100
+      : currentExpense > 0
+        ? 100
+        : 0;
+
+  const currentNet = currentIncome - currentExpense;
+  const compareNet = compareIncome - compareExpense;
+  const netChange =
+    compareNet !== 0
+      ? ((currentNet - compareNet) / Math.abs(compareNet)) * 100
+      : currentNet !== 0
+        ? 100
+        : 0;
+
+  return {
+    currentMonth: {
+      income: currentIncome,
+      expense: currentExpense,
+      net: currentNet,
+      transactionCount: currentTransactions?.length || 0,
+    },
+    compareMonth: {
+      income: compareIncome,
+      expense: compareExpense,
+      net: compareNet,
+      transactionCount: compareTransactions?.length || 0,
+    },
+    incomeChange,
+    expenseChange,
+    netChange,
   };
 }

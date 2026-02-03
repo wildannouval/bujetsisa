@@ -14,6 +14,7 @@ import {
   Target,
   Banknote,
   RefreshCw,
+  BarChart3,
 } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
@@ -109,7 +110,7 @@ export function AppSidebar({
     {
       title: t.nav.analytics || "Analisis",
       url: "/analytics",
-      icon: Target,
+      icon: BarChart3,
     },
     {
       title: t.nav.reports,

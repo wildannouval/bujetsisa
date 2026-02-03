@@ -91,6 +91,23 @@ export function SurvivalCalculator({
             </div>
           </div>
 
+          {/* Calculation Breakdown */}
+          <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg border border-blue-100 dark:border-blue-900/30">
+            <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">
+              📊 Cara Perhitungan:
+            </p>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p className="font-mono bg-white/50 dark:bg-black/20 px-2 py-1 rounded">
+                Dana Bertahan = Total Dana / Pengeluaran per Bulan
+              </p>
+              <p className="font-mono bg-white/50 dark:bg-black/20 px-2 py-1 rounded">
+                {formatCurrency(totalAvailableFunds)} /{" "}
+                {formatCurrency(averageMonthlyExpense)} ={" "}
+                <strong>{survivalMonths.toFixed(2)} bulan</strong>
+              </p>
+            </div>
+          </div>
+
           {/* Emergency Fund Progress */}
           {emergencyFundTarget > 0 && (
             <div className="space-y-2">

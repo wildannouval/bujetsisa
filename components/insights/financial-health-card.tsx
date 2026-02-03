@@ -127,6 +127,9 @@ export function FinancialHealthCard({
               </span>
             </div>
             <p className="text-sm text-muted-foreground">{survivalMessage}</p>
+            <p className="text-xs text-muted-foreground opacity-70">
+              Total semua saldo dompet / Rata-rata pengeluaran
+            </p>
           </div>
 
           {/* Emergency Fund Coverage */}
@@ -153,7 +156,12 @@ export function FinancialHealthCard({
                 ? "Dana darurat sudah mencukupi"
                 : monthsOfCoverage >= 3
                   ? "Hampir mencapai target"
-                  : "Perlu ditingkatkan"}
+                  : monthsOfCoverage > 0
+                    ? "Perlu ditingkatkan"
+                    : "Belum ada target dana darurat"}
+            </p>
+            <p className="text-xs text-muted-foreground opacity-70">
+              Khusus target dengan toggle "Dana Darurat" aktif
             </p>
           </div>
 
@@ -188,7 +196,12 @@ export function FinancialHealthCard({
                   ? "Sangat bagus"
                   : savingsRate >= 10
                     ? "Cukup baik"
-                    : "Perlu perbaikan"}
+                    : savingsRate >= 0
+                      ? "Perlu ditingkatkan"
+                      : "Pengeluaran melebihi pendapatan"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 opacity-70">
+              (Pendapatan - Pengeluaran) / Pendapatan × 100
             </p>
           </div>
         </div>

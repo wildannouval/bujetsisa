@@ -1,16 +1,17 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   getRecurringTransactions,
   getUpcomingRecurring,
+  RecurringTransaction,
 } from "@/lib/actions/recurring";
-import { getWallets } from "@/lib/actions/wallets";
-import { getCategories } from "@/lib/actions/categories";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
+import { RecurringDialog } from "@/components/recurring/recurring-dialog";
 import {
   RefreshCw,
-  Plus,
   Calendar,
   ArrowUpCircle,
   ArrowDownCircle,
@@ -18,15 +19,26 @@ import {
   Pause,
   Play,
 } from "lucide-react";
-import Link from "next/link";
 
-export default async function RecurringPage() {
-  const [recurring, upcoming, wallets, categories] = await Promise.all([
-    getRecurringTransactions(),
-    getUpcomingRecurring(14),
-    getWallets(),
-    getCategories(),
-  ]);
+export default function RecurringPage() {
+  const [recurring, setRecurring] = useState<RecurringTransaction[]>([]);
+  const [upcoming, setUpcoming] = useState<RecurringTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    const [recurringData, upcomingData] = await Promise.all([
+      getRecurringTransactions(),
+      getUpcomingRecurring(14),
+    ]);
+    setRecurring(recurringData);
+    setUpcoming(upcomingData);
+    setLoading(false);
+  };
 
   const activeRecurring = recurring.filter((r) => r.is_active);
   const inactiveRecurring = recurring.filter((r) => !r.is_active);
@@ -53,10 +65,7 @@ export default async function RecurringPage() {
             Kelola langganan dan tagihan rutin Anda
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Tambah Transaksi Berulang
-        </Button>
+        <RecurringDialog />
       </div>
 
       {/* Summary Cards */}

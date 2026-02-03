@@ -140,6 +140,14 @@ export default function SettingsPage() {
   };
 
   const handleChangePassword = async () => {
+    if (!currentPassword) {
+      toast.error(
+        t.settings.current_password_required ||
+          "Kata sandi saat ini wajib diisi",
+      );
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       toast.error(t.settings.password_mismatch);
       return;

@@ -120,17 +120,26 @@ export async function getDashboardData() {
     .order("date", { ascending: false })
     .limit(5);
 
-  // Fetch goals data
+  // Fetch goals data - include wallet_id to get linked wallet balance
   const { data: goals } = await supabase
     .from("goals")
-    .select("current_amount, target_amount, status")
+    .select("current_amount, target_amount, status, wallet_id")
     .eq("user_id", user.id);
 
+  // For goals linked to wallets, use the wallet balance as current_amount
   const activeGoals = (goals || []).filter((g) => g.status === "active").length;
-  const totalSaved = (goals || []).reduce(
-    (sum, g) => sum + Number(g.current_amount),
-    0,
-  );
+
+  let totalSaved = 0;
+  for (const goal of goals || []) {
+    if (goal.wallet_id) {
+      // Find the linked wallet balance
+      const linkedWallet = (wallets || []).find((w) => w.id === goal.wallet_id);
+      totalSaved += linkedWallet ? Number(linkedWallet.balance) : 0;
+    } else {
+      totalSaved += Number(goal.current_amount);
+    }
+  }
+
   const totalTarget = (goals || []).reduce(
     (sum, g) => sum + Number(g.target_amount),
     0,

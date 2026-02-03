@@ -17,8 +17,9 @@ import { getWallets } from "@/lib/actions/wallets";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Plus, Target, Link2 } from "lucide-react";
+import { Plus, Target, Link2, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/hooks/use-translation";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -65,6 +66,9 @@ export function GoalDialog({ goal, open, onOpenChange }: GoalDialogProps) {
   const [selectedWalletId, setSelectedWalletId] = useState<string>(
     (goal as any)?.wallet_id || "",
   );
+  const [isEmergencyFund, setIsEmergencyFund] = useState<boolean>(
+    (goal as any)?.is_emergency_fund || false,
+  );
 
   const dialogOpen = open !== undefined ? open : isOpen;
   const setDialogOpen = onOpenChange || setIsOpen;
@@ -90,6 +94,7 @@ export function GoalDialog({ goal, open, onOpenChange }: GoalDialogProps) {
     if (selectedWalletId) {
       formData.set("wallet_id", selectedWalletId);
     }
+    formData.set("is_emergency_fund", isEmergencyFund ? "true" : "false");
 
     try {
       const result = goal
@@ -207,6 +212,27 @@ export function GoalDialog({ goal, open, onOpenChange }: GoalDialogProps) {
                   "Progress akan otomatis sinkron dengan saldo dompet ini."}
               </p>
             )}
+          </div>
+
+          {/* Emergency Fund Toggle */}
+          <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-900">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              <div>
+                <Label htmlFor="emergency_fund" className="cursor-pointer">
+                  {t.goals.emergency_fund || "Dana Darurat"}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t.goals.emergency_fund_info ||
+                    "Tandai sebagai dana darurat untuk perhitungan keuangan"}
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="emergency_fund"
+              checked={isEmergencyFund}
+              onCheckedChange={setIsEmergencyFund}
+            />
           </div>
 
           {/* Only show current amount if no wallet is linked */}

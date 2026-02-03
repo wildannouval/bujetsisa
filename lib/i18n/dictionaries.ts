@@ -120,6 +120,7 @@ export const id = {
     password_mismatch: "Kata sandi baru tidak cocok",
     password_too_short: "Kata sandi minimal 6 karakter",
     password_changed: "Kata sandi berhasil diubah",
+    current_password_required: "Kata sandi saat ini wajib diisi",
   },
   wallets: {
     title: "Dompet",
@@ -358,6 +359,9 @@ export const id = {
     select_wallet: "Pilih dompet (opsional)",
     no_wallet: "Tidak ada (Manual)",
     wallet_info: "Progress akan otomatis sinkron dengan saldo dompet ini.",
+    emergency_fund: "Dana Darurat",
+    emergency_fund_info:
+      "Tandai sebagai dana darurat untuk perhitungan keuangan",
   },
   reports: {
     title: "Laporan",
@@ -523,6 +527,7 @@ export const en: Dictionary = {
     password_mismatch: "New passwords do not match",
     password_too_short: "Password must be at least 6 characters",
     password_changed: "Password changed successfully",
+    current_password_required: "Current password is required",
   },
   wallets: {
     title: "Wallets",
@@ -760,6 +765,8 @@ export const en: Dictionary = {
     select_wallet: "Select wallet (optional)",
     no_wallet: "None (Manual)",
     wallet_info: "Progress will auto-sync with this wallet's balance.",
+    emergency_fund: "Emergency Fund",
+    emergency_fund_info: "Mark as emergency fund for financial calculations",
   },
   reports: {
     title: "Reports",

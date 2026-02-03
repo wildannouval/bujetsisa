@@ -5,6 +5,7 @@ import {
 import { FinancialHealthCard } from "@/components/insights/financial-health-card";
 import { SmartRecommendations } from "@/components/insights/smart-recommendations";
 import { SurvivalCalculator } from "@/components/insights/survival-calculator";
+import { MonthComparison } from "@/components/insights/month-comparison";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
@@ -73,6 +74,9 @@ export default async function AnalyticsPage() {
         {/* Smart Recommendations */}
         <SmartRecommendations recommendations={data.recommendations} />
       </div>
+
+      {/* Month Comparison */}
+      <MonthComparison />
 
       {/* Spending Trends */}
       {trends && (

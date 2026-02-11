@@ -349,7 +349,7 @@ export async function getUpcomingRecurring(days: number = 7) {
     .lte("next_date", futureDate.toISOString().split("T")[0])
     .order("next_date", { ascending: true });
 
-  if (error) {
+  if (error?.message) {
     console.error("Error fetching upcoming recurring:", error);
     return [];
   }

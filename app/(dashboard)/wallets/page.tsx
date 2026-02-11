@@ -3,6 +3,7 @@ import { WalletCard } from "@/components/wallets/wallet-card";
 import { WalletSummary } from "@/components/wallets/wallet-summary";
 import { TransferDialog } from "@/components/wallets/transfer-dialog";
 import { getWalletsWithStats, getWalletsStats } from "@/lib/actions/wallets";
+import { ExportButton } from "@/components/export-button";
 
 export default async function WalletsPage() {
   const [wallets, stats] = await Promise.all([
@@ -20,6 +21,7 @@ export default async function WalletsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Dompet</h1>
         <div className="flex flex-wrap gap-2">
+          <ExportButton type="wallets" data={wallets} />
           <TransferDialog wallets={wallets} />
           <WalletDialog />
         </div>

@@ -37,6 +37,8 @@ import {
 } from "@/components/ui/popover";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { useRouter } from "next/navigation";
+import { TagPicker } from "@/components/tags/tag-picker";
+import { setTransactionTags } from "@/lib/actions/tags";
 
 interface TransactionDialogProps {
   transaction?: Transaction;
@@ -61,6 +63,7 @@ export function TransactionDialog({
     transaction ? new Date(transaction.date) : new Date(),
   );
   const [type, setType] = useState<string>(transaction?.type || "expense");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const isEdit = !!transaction;
   const isOpen = open !== undefined ? open : internalOpen;
@@ -92,6 +95,14 @@ export function TransactionDialog({
             ? t.transactions.update_success
             : t.transactions.create_success,
         );
+
+        // Save tags if any selected
+        if (selectedTags.length > 0 && result?.data?.id) {
+          await setTransactionTags(result.data.id, selectedTags);
+        } else if (isEdit && transaction) {
+          await setTransactionTags(transaction.id, selectedTags);
+        }
+
         setIsOpen(false);
         router.refresh();
       }
@@ -222,6 +233,14 @@ export function TransactionDialog({
                 name="description"
                 defaultValue={transaction?.description}
                 placeholder="e.g., Lunch at restaurant"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Tag</Label>
+              <TagPicker
+                selectedTags={selectedTags}
+                onTagsChange={setSelectedTags}
               />
             </div>
           </div>

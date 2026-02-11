@@ -58,6 +58,7 @@ export function WalletDialog({
   const [loading, setLoading] = useState(false);
   const [internalOpen, setInternalOpen] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState(wallet?.icon || "💵");
+  const [currency, setCurrency] = useState(wallet?.currency || "IDR");
 
   const isEdit = !!wallet;
   const isOpen = open !== undefined ? open : internalOpen;
@@ -69,6 +70,7 @@ export function WalletDialog({
 
     const formData = new FormData(e.currentTarget);
     formData.set("icon", selectedIcon);
+    formData.set("currency", currency);
 
     try {
       let result;
@@ -165,6 +167,29 @@ export function WalletDialog({
                 defaultValue={wallet?.balance}
                 required
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Mata Uang</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IDR">🇮🇩 IDR - Rupiah</SelectItem>
+                  <SelectItem value="USD">🇺🇸 USD - Dollar</SelectItem>
+                  <SelectItem value="EUR">🇪🇺 EUR - Euro</SelectItem>
+                  <SelectItem value="SGD">🇸🇬 SGD - Singapore Dollar</SelectItem>
+                  <SelectItem value="JPY">🇯🇵 JPY - Yen</SelectItem>
+                  <SelectItem value="MYR">🇲🇾 MYR - Ringgit</SelectItem>
+                  <SelectItem value="GBP">🇬🇧 GBP - Pound</SelectItem>
+                  <SelectItem value="AUD">
+                    🇦🇺 AUD - Australian Dollar
+                  </SelectItem>
+                  <SelectItem value="CNY">🇨🇳 CNY - Yuan</SelectItem>
+                  <SelectItem value="KRW">🇰🇷 KRW - Won</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

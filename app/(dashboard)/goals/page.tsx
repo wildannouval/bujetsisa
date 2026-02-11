@@ -2,6 +2,7 @@ import { GoalDialog } from "@/components/goals/goal-dialog";
 import { GoalList } from "@/components/goals/goal-list";
 import { GoalSummary } from "@/components/goals/goal-summary";
 import { getGoals, getGoalStats } from "@/lib/actions/goals";
+import { ExportButton } from "@/components/export-button";
 
 export default async function GoalsPage() {
   const [goals, stats] = await Promise.all([
@@ -22,7 +23,10 @@ export default async function GoalsPage() {
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
           Target Keuangan
         </h1>
-        <GoalDialog />
+        <div className="flex flex-wrap gap-2">
+          <ExportButton type="goals" data={goals} />
+          <GoalDialog />
+        </div>
       </div>
 
       <GoalSummary stats={stats} />

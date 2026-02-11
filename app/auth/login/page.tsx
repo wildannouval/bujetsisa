@@ -2,8 +2,16 @@ import { LoginForm } from "@/components/login-form";
 import { Suspense } from "react";
 import Link from "next/link";
 import { Banknote } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) redirect("/dashboard");
+
   return (
     <div className="min-h-svh flex flex-col">
       {/* Header */}

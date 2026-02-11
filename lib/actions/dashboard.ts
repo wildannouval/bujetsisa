@@ -13,6 +13,8 @@ export async function getDashboardData() {
       totalBalance: 0,
       income: 0,
       expense: 0,
+      lastMonthIncome: 0,
+      lastMonthExpense: 0,
       recentTransactions: [],
       activeWalletsCount: 0,
       goalsProgress: { active: 0, total: 0, saved: 0, target: 0 },
@@ -24,6 +26,7 @@ export async function getDashboardData() {
       },
       debtSummary: { payable: 0, receivable: 0, overdue: 0 },
       topCategories: [],
+      weeklySpending: [],
     };
   }
 
@@ -36,13 +39,10 @@ export async function getDashboardData() {
   if (walletsError) {
     console.error("Error fetching wallets:", walletsError);
   }
-  console.log("Dashboard - User ID:", user.id);
-  console.log("Dashboard - Wallets:", wallets);
 
   const totalBalance = (wallets || []).reduce((acc, wallet) => {
     return acc + Number(wallet.balance || 0);
   }, 0);
-  console.log("Dashboard - Total Balance:", totalBalance);
 
   // Get current month range
   const now = new Date();
@@ -59,10 +59,35 @@ export async function getDashboardData() {
   // Fetch monthly transactions
   const { data: monthlyTransactions } = await supabase
     .from("transactions")
-    .select("amount, type, category_id, category:categories(name, icon)")
+    .select("amount, type, date, category_id, category:categories(name, icon)")
     .eq("user_id", user.id)
     .gte("date", startOfMonth.toISOString())
     .lte("date", endOfMonth.toISOString());
+
+  // Fetch last month transactions for comparison
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    0,
+    23,
+    59,
+    59,
+  );
+
+  const { data: lastMonthTransactions } = await supabase
+    .from("transactions")
+    .select("amount, type")
+    .eq("user_id", user.id)
+    .gte("date", startOfLastMonth.toISOString())
+    .lte("date", endOfLastMonth.toISOString());
+
+  let lastMonthIncome = 0;
+  let lastMonthExpense = 0;
+  for (const t of lastMonthTransactions || []) {
+    if (t.type === "income") lastMonthIncome += Number(t.amount || 0);
+    else if (t.type === "expense") lastMonthExpense += Number(t.amount || 0);
+  }
 
   let income = 0;
   let expense = 0;
@@ -200,10 +225,41 @@ export async function getDashboardData() {
     return dueDate < today;
   }).length;
 
+  // Weekly spending (last 7 days)
+  const weeklySpending: {
+    day: string;
+    shortDay: string;
+    income: number;
+    expense: number;
+  }[] = [];
+  const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split("T")[0];
+    let dayIncome = 0;
+    let dayExpense = 0;
+    for (const t of monthlyTransactions || []) {
+      const tDate = typeof t.date === "string" ? t.date.split("T")[0] : "";
+      if (tDate === dateStr) {
+        if (t.type === "income") dayIncome += Number(t.amount || 0);
+        else if (t.type === "expense") dayExpense += Number(t.amount || 0);
+      }
+    }
+    weeklySpending.push({
+      day: d.toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+      shortDay: dayNames[d.getDay()],
+      income: dayIncome,
+      expense: dayExpense,
+    });
+  }
+
   return {
     totalBalance,
     income,
     expense,
+    lastMonthIncome,
+    lastMonthExpense,
     recentTransactions: recentTransactions || [],
     activeWalletsCount: wallets?.length || 0,
     goalsProgress: {
@@ -224,5 +280,6 @@ export async function getDashboardData() {
       overdue: overdueCount,
     },
     topCategories,
+    weeklySpending,
   };
 }

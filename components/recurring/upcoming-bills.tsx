@@ -3,14 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Bell,
-  Calendar,
-  ArrowUpRight,
-  ArrowDownRight,
-  Check,
-  Loader2,
-} from "lucide-react";
+import { Bell, Calendar, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { processRecurringTransaction } from "@/lib/actions/recurring";

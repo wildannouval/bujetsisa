@@ -330,7 +330,9 @@ export async function addInvestmentTransaction(formData: FormData) {
     return { error: "Invalid transaction data" };
   }
 
-  const totalAmount = quantity * price + fees;
+  // For sell: fees reduce proceeds. For buy: fees add to cost.
+  const totalAmount =
+    type === "sell" ? quantity * price - fees : quantity * price + fees;
 
   // Get current investment
   const { data: investment } = await supabase
@@ -383,16 +385,17 @@ export async function addInvestmentTransaction(formData: FormData) {
     newAvgPrice = newAvgPrice / quantity;
   }
 
-  // Update investment
-  await supabase
-    .from("investments")
-    .update({
-      quantity: newQuantity,
-      avg_buy_price: newAvgPrice,
-      current_price: price, // Update current price to transaction price
-      status: newQuantity <= 0 ? "sold" : "active",
-    })
-    .eq("id", investmentId);
+  // Update investment — only update current_price for buy/sell (not dividend)
+  const updateData: Record<string, any> = {
+    quantity: newQuantity,
+    avg_buy_price: newAvgPrice,
+    status: newQuantity <= 0 ? "sold" : "active",
+  };
+  if (type === "buy" || type === "sell") {
+    updateData.current_price = price;
+  }
+
+  await supabase.from("investments").update(updateData).eq("id", investmentId);
 
   revalidatePath("/investments");
   revalidatePath(`/investments/${investmentId}`);

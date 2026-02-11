@@ -24,6 +24,36 @@ import {
 import Link from "next/link";
 import { UpcomingBills } from "@/components/recurring/upcoming-bills";
 import { BillReminderBanner } from "@/components/recurring/bill-reminder-banner";
+import { WeeklySpendingChart } from "@/components/dashboard/weekly-spending-chart";
+import { CategoryDonutChart } from "@/components/dashboard/category-donut-chart";
+
+function ChangeIndicator({
+  current,
+  previous,
+  inverse = false,
+}: {
+  current: number;
+  previous: number;
+  inverse?: boolean;
+}) {
+  if (previous === 0) return null;
+  const change = ((current - previous) / previous) * 100;
+  const isPositive = change > 0;
+  const isGood = inverse ? !isPositive : isPositive;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 rounded-full ${
+        isGood
+          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+      }`}
+    >
+      {isPositive ? "↑" : "↓"}
+      {Math.abs(change).toFixed(0)}%
+    </span>
+  );
+}
 
 async function getData() {
   try {
@@ -37,6 +67,8 @@ async function getData() {
       totalBalance: 0,
       income: 0,
       expense: 0,
+      lastMonthIncome: 0,
+      lastMonthExpense: 0,
       recentTransactions: [],
       activeWalletsCount: 0,
       goalsProgress: { active: 0, total: 0, saved: 0, target: 0 },
@@ -49,6 +81,7 @@ async function getData() {
       debtSummary: { payable: 0, receivable: 0, overdue: 0 },
       topCategories: [],
       upcomingBills: [],
+      weeklySpending: [],
     };
   }
 }
@@ -57,6 +90,7 @@ export default async function DashboardPage() {
   const data = await getData();
 
   const netAmount = data.income - data.expense;
+  const lastMonthNet = data.lastMonthIncome - data.lastMonthExpense;
   const goalsPercentage =
     data.goalsProgress.target > 0
       ? Math.round((data.goalsProgress.saved / data.goalsProgress.target) * 100)
@@ -113,9 +147,15 @@ export default async function DashboardPage() {
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                  Pemasukan Bulan Ini
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">
+                    Pemasukan
+                  </p>
+                  <ChangeIndicator
+                    current={data.income}
+                    previous={data.lastMonthIncome}
+                  />
+                </div>
                 <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 mt-1 truncate">
                   +{formatCurrency(data.income, "IDR")}
                 </p>
@@ -132,9 +172,16 @@ export default async function DashboardPage() {
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                  Pengeluaran Bulan Ini
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">
+                    Pengeluaran
+                  </p>
+                  <ChangeIndicator
+                    current={data.expense}
+                    previous={data.lastMonthExpense}
+                    inverse
+                  />
+                </div>
                 <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-600 mt-1 truncate">
                   -{formatCurrency(data.expense, "IDR")}
                 </p>
@@ -157,9 +204,15 @@ export default async function DashboardPage() {
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-muted-foreground">
-                  Selisih
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">
+                    Selisih
+                  </p>
+                  <ChangeIndicator
+                    current={netAmount}
+                    previous={lastMonthNet}
+                  />
+                </div>
                 <p
                   className={`text-lg sm:text-xl md:text-2xl font-bold mt-1 truncate ${netAmount >= 0 ? "text-green-600" : "text-red-600"}`}
                 >
@@ -177,6 +230,15 @@ export default async function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
+        <WeeklySpendingChart data={data.weeklySpending} />
+        <CategoryDonutChart
+          categories={data.topCategories}
+          totalExpense={data.expense}
+        />
       </div>
 
       {/* Secondary Stats Row */}

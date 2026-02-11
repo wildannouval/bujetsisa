@@ -2,6 +2,7 @@ import { DebtDialog } from "@/components/debts/debt-dialog";
 import { DebtList } from "@/components/debts/debt-list";
 import { DebtSummary } from "@/components/debts/debt-summary";
 import { getDebts, getDebtStats } from "@/lib/actions/debts";
+import { ExportButton } from "@/components/export-button";
 
 export default async function DebtsPage() {
   const [debts, stats] = await Promise.all([
@@ -22,7 +23,10 @@ export default async function DebtsPage() {
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
           Hutang & Piutang
         </h1>
-        <DebtDialog />
+        <div className="flex flex-wrap gap-2">
+          <ExportButton type="debts" data={debts} />
+          <DebtDialog />
+        </div>
       </div>
 
       <DebtSummary stats={stats} />

@@ -2,6 +2,7 @@ import { getInvestments, getInvestmentStats } from "@/lib/actions/investments";
 import { InvestmentDialog } from "@/components/investments/investment-dialog";
 import { InvestmentSummary } from "@/components/investments/investment-summary";
 import { InvestmentList } from "@/components/investments/investment-list";
+import { ExportButton } from "@/components/export-button";
 
 export default async function InvestmentsPage() {
   const [investments, stats] = await Promise.all([
@@ -20,7 +21,10 @@ export default async function InvestmentsPage() {
             Kelola dan pantau portofolio investasi Anda
           </p>
         </div>
-        <InvestmentDialog />
+        <div className="flex flex-wrap gap-2">
+          <ExportButton type="investments" data={investments} />
+          <InvestmentDialog />
+        </div>
       </div>
 
       <InvestmentSummary stats={stats} />

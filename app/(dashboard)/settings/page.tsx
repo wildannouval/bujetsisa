@@ -616,6 +616,85 @@ export default function SettingsPage() {
                 </Button>
               </div>
 
+              {/* Backup & Restore */}
+              <Separator />
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center gap-4">
+                  <div className="rounded-full bg-emerald-100 p-2 dark:bg-emerald-900/20">
+                    <Download className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Backup & Restore</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Backup semua data ke JSON atau restore dari backup
+                      sebelumnya
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const { exportBackup } =
+                          await import("@/lib/actions/backup");
+                        const result = await exportBackup();
+                        if (result.error) {
+                          toast.error(result.error);
+                          return;
+                        }
+                        const dataStr = JSON.stringify(result.data, null, 2);
+                        const blob = new Blob([dataStr], {
+                          type: "application/json",
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.download = `bujetsisa-backup-${new Date().toISOString().split("T")[0]}.json`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        toast.success("Backup berhasil didownload!");
+                      } catch {
+                        toast.error("Gagal membuat backup");
+                      }
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Backup JSON
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const input = document.createElement("input");
+                      input.type = "file";
+                      input.accept = ".json";
+                      input.onchange = async (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (!file) return;
+                        const text = await file.text();
+                        const { importBackup } =
+                          await import("@/lib/actions/backup");
+                        const result = await importBackup(text);
+                        if (result.error) {
+                          toast.error(result.error);
+                        } else {
+                          toast.success(result.message || "Import berhasil!");
+                          router.refresh();
+                        }
+                      };
+                      input.click();
+                    }}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Restore dari File
+                  </Button>
+                </div>
+              </div>
+
               {/* Delete Account */}
               <Separator />
               <div className="rounded-lg border border-red-200 p-4 dark:border-red-900/30">

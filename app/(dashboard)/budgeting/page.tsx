@@ -3,6 +3,7 @@ import { BudgetList } from "@/components/budgeting/budget-list";
 import { BudgetSummary } from "@/components/budgeting/budget-summary";
 import { getBudgetsWithSpending, getBudgetStats } from "@/lib/actions/budgets";
 import { getCategories } from "@/lib/actions/categories";
+import { ExportButton } from "@/components/export-button";
 
 export default async function BudgetingPage() {
   const [budgets, categories, stats] = await Promise.all([
@@ -26,7 +27,10 @@ export default async function BudgetingPage() {
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
           Anggaran
         </h1>
-        <BudgetDialog categories={expenseCategories} />
+        <div className="flex flex-wrap gap-2">
+          <ExportButton type="budgets" data={budgets} />
+          <BudgetDialog categories={expenseCategories} />
+        </div>
       </div>
 
       <BudgetSummary stats={stats} />

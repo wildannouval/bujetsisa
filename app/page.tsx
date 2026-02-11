@@ -16,9 +16,16 @@ import {
   FileText,
   ArrowRight,
   CheckCircle,
+  LayoutDashboard,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isLoggedIn = !!user;
   const features = [
     {
       icon: Wallet,
@@ -77,15 +84,29 @@ export default function LandingPage() {
             <span className="font-bold text-xl">BujetSisa</span>
           </Link>
           <nav className="flex items-center gap-3">
-            <Button variant="ghost" asChild>
-              <Link href="/auth/login">Masuk</Link>
-            </Button>
-            <Button
-              asChild
-              className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
-            >
-              <Link href="/auth/sign-up">Daftar Gratis</Link>
-            </Button>
+            {isLoggedIn ? (
+              <Button
+                asChild
+                className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
+              >
+                <Link href="/dashboard">
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link href="/auth/login">Masuk</Link>
+                </Button>
+                <Button
+                  asChild
+                  className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700"
+                >
+                  <Link href="/auth/sign-up">Daftar Gratis</Link>
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -106,24 +127,39 @@ export default function LandingPage() {
               powerful.
             </p>
             <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:gap-4 sm:flex-row">
-              <Button
-                size="lg"
-                asChild
-                className="w-full sm:w-auto gap-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 px-8"
-              >
-                <Link href="/auth/sign-up">
-                  Mulai Gratis
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                asChild
-                className="w-full sm:w-auto px-8"
-              >
-                <Link href="/auth/login">Sudah Punya Akun?</Link>
-              </Button>
+              {isLoggedIn ? (
+                <Button
+                  size="lg"
+                  asChild
+                  className="w-full sm:w-auto gap-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 px-8"
+                >
+                  <Link href="/dashboard">
+                    Buka Dashboard
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    size="lg"
+                    asChild
+                    className="w-full sm:w-auto gap-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 px-8"
+                  >
+                    <Link href="/auth/sign-up">
+                      Mulai Gratis
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    asChild
+                    className="w-full sm:w-auto px-8"
+                  >
+                    <Link href="/auth/login">Sudah Punya Akun?</Link>
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Benefits */}
@@ -195,8 +231,8 @@ export default function LandingPage() {
                     asChild
                     className="w-full sm:w-auto gap-2 px-8 font-semibold"
                   >
-                    <Link href="/auth/sign-up">
-                      Buat Akun Gratis
+                    <Link href={isLoggedIn ? "/dashboard" : "/auth/sign-up"}>
+                      {isLoggedIn ? "Buka Dashboard" : "Buat Akun Gratis"}
                       <ArrowRight className="h-4 w-4" />
                     </Link>
                   </Button>

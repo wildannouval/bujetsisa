@@ -16,6 +16,9 @@ import {
   RefreshCw,
   BarChart3,
   TrendingUp,
+  DollarSign,
+  Zap,
+  Scissors,
 } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
@@ -110,9 +113,24 @@ export function AppSidebar({
       url: "/recurring",
       icon: RefreshCw,
     },
+    {
+      title: "Net Worth",
+      url: "/net-worth",
+      icon: DollarSign,
+    },
+    {
+      title: "Split Bill",
+      url: "/split-bills",
+      icon: Scissors,
+    },
   ];
 
   const navTools = [
+    {
+      title: "Catat Cepat",
+      url: "/quick-add",
+      icon: Zap,
+    },
     {
       title: t.nav.analytics || "Analisis",
       url: "/analytics",

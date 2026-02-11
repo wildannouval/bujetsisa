@@ -14,6 +14,7 @@ export interface Wallet {
   name: string;
   type: "cash" | "bank" | "ewallet";
   balance: number;
+  currency?: string;
   icon?: string;
   created_at: string;
   updated_at: string;

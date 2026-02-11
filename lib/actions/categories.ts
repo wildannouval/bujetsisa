@@ -20,7 +20,7 @@ export async function getCategories() {
     .order("type", { ascending: true })
     .order("name", { ascending: true });
 
-  if (error && Object.keys(error).length > 0) {
+  if (error?.message) {
     console.error("Error fetching categories:", error);
     return [];
   }

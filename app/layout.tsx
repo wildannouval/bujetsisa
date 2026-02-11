@@ -4,6 +4,7 @@ import { LanguageProvider } from "@/lib/i18n/context";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -36,6 +37,23 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="BujetSisa" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="/icons/icon-96x96.png"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js');
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className={`${geistSans.className} antialiased`}>
         <LanguageProvider>
@@ -47,6 +65,7 @@ export default function RootLayout({
           >
             {children}
             <Toaster position="top-center" richColors />
+            <PWAInstallPrompt />
           </ThemeProvider>
         </LanguageProvider>
       </body>

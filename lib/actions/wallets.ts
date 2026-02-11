@@ -20,7 +20,7 @@ export async function getWallets() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
-  if (error && Object.keys(error).length > 0) {
+  if (error?.message) {
     console.error("Error fetching wallets:", error);
     return [];
   }
@@ -229,6 +229,7 @@ export async function createWallet(formData: FormData) {
   const balanceStr = formData.get("balance") as string;
   const balance = parseFloat(balanceStr?.replace(/\./g, "") || "0");
   const icon = (formData.get("icon") as string) || "💵";
+  const currency = (formData.get("currency") as string) || "IDR";
 
   if (!name) {
     return { error: "Name is required" };
@@ -242,6 +243,7 @@ export async function createWallet(formData: FormData) {
       type,
       balance,
       icon,
+      currency,
     })
     .select()
     .single();
@@ -264,10 +266,11 @@ export async function updateWallet(id: string, formData: FormData) {
   const balanceStr = formData.get("balance") as string;
   const balance = parseFloat(balanceStr?.replace(/\./g, "") || "0");
   const icon = (formData.get("icon") as string) || "💵";
+  const currency = (formData.get("currency") as string) || "IDR";
 
   const { data, error } = await supabase
     .from("wallets")
-    .update({ name, type, balance, icon })
+    .update({ name, type, balance, icon, currency })
     .eq("id", id)
     .select()
     .single();

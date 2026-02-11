@@ -8,6 +8,7 @@ import {
 } from "@/lib/actions/transactions";
 import { getWallets } from "@/lib/actions/wallets";
 import { getCategories } from "@/lib/actions/categories";
+import { ExportButton } from "@/components/export-button";
 
 interface TransactionsPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -38,6 +39,7 @@ export default async function TransactionsPage({
           Transaksi
         </h1>
         <div className="flex flex-wrap gap-2">
+          <ExportButton type="transactions" data={transactions} />
           <IncomeDistributionDialog />
           <TransactionDialog wallets={wallets} categories={categories} />
         </div>
